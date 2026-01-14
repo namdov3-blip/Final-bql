@@ -104,6 +104,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     .replace(/[^a-z0-9]/g, ''); // Remove special chars/spaces
             };
 
+            let jsonData: any[] = [];
+            let columnKeys: string[] = [];
+            let finalWorksheet: any = null;
+
+            // Try sheets one by one until we find valid data
+            for (const sheetName of workbook.SheetNames) {
+                const worksheet = workbook.Sheets[sheetName];
+                const currentData = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+                if (currentData.length > 0) {
+                    const keys = Object.keys(currentData[0]);
+                    // Check if this sheet looks like it has name/amount
+                    const hasName = !!keys.find(k => normalize(k).includes('ten') || normalize(k).includes('name'));
+                    const hasAmount = !!keys.find(k => normalize(k).includes('tien') || normalize(k).includes('amount'));
+
+                    if (hasName && hasAmount) {
+                        jsonData = currentData;
+                        columnKeys = keys;
+                        finalWorksheet = worksheet;
+                        break;
+                    }
+                }
+            }
+
+            if (jsonData.length === 0) {
+                // If no "perfect" sheet found, just fallback to first sheet if it has content
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                jsonData = XLSX.utils.sheet_to_json(firstSheet) as any[];
+                if (jsonData.length > 0) {
+                    columnKeys = Object.keys(jsonData[0]);
+                } else {
+                    return res.status(400).json({ error: 'File Excel không có dữ liệu trên bất kỳ Sheet nào' });
+                }
+            }
+
             const findColumn = (patterns: string[]): string | undefined => {
                 const normPatterns = patterns.map(p => normalize(p));
                 return columnKeys.find(key => {
