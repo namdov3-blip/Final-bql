@@ -21,7 +21,7 @@ export const parseNumberFromComma = (value: string): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
-export const calculateInterest = (principal: number, ratePerYear: number, baseDateStr?: string, endDate: Date = new Date()): number => {
+export const calculateInterest = (principal: number, ratePerYear: number, baseDateStr?: any, endDate: Date = new Date()): number => {
   if (!baseDateStr) return 0;
 
   // Quy tắc mới:
@@ -30,7 +30,21 @@ export const calculateInterest = (principal: number, ratePerYear: number, baseDa
   //   Ví dụ:
   //   + baseDate = 11/01, endDate = 13/01 => 2 ngày (đêm 11-12, đêm 12-13)
   //   + baseDate = 11/01, endDate = 14/01 => 3 ngày (qua 3 mốc 00:00 sau baseDate).
-  const baseDate = new Date(baseDateStr);
+
+  // Handle different date input types
+  let baseDate: Date;
+  if (baseDateStr instanceof Date) {
+    baseDate = new Date(baseDateStr);
+  } else if (typeof baseDateStr === 'object') {
+    // Invalid object, return 0
+    return 0;
+  } else {
+    baseDate = new Date(baseDateStr);
+  }
+
+  // Validate baseDate
+  if (isNaN(baseDate.getTime())) return 0;
+
   // Reset giờ về 00:00:00 để tính chênh lệch ngày chính xác
   baseDate.setHours(0, 0, 0, 0);
   const end = new Date(endDate);
@@ -38,7 +52,7 @@ export const calculateInterest = (principal: number, ratePerYear: number, baseDa
 
   const timeDiff = end.getTime() - baseDate.getTime();
   const days = Math.floor(timeDiff / (1000 * 3600 * 24));
-  
+
   // Nếu chưa qua mốc 00:00 nào sau baseDate thì chưa có lãi
   if (days <= 0) return 0;
 
@@ -69,24 +83,24 @@ export const formatDateForPrint = (dateString: string): string => {
 // Convert number to Vietnamese words
 export const numberToVietnameseWords = (num: number): string => {
   if (num === 0) return 'không';
-  
+
   const ones = ['', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
   const tens = ['', '', 'hai mươi', 'ba mươi', 'bốn mươi', 'năm mươi', 'sáu mươi', 'bảy mươi', 'tám mươi', 'chín mươi'];
   const hundreds = ['', 'một trăm', 'hai trăm', 'ba trăm', 'bốn trăm', 'năm trăm', 'sáu trăm', 'bảy trăm', 'tám trăm', 'chín trăm'];
-  
+
   const readGroup = (n: number, isLastGroup: boolean = false): string => {
     if (n === 0) return '';
-    
+
     let result = '';
     const hundred = Math.floor(n / 100);
     const remainder = n % 100;
     const ten = Math.floor(remainder / 10);
     const one = remainder % 10;
-    
+
     if (hundred > 0) {
       result += hundreds[hundred] + ' ';
     }
-    
+
     if (ten > 1) {
       result += tens[ten] + ' ';
       if (one > 0) {
@@ -104,24 +118,24 @@ export const numberToVietnameseWords = (num: number): string => {
     } else if (one > 0) {
       result += ones[one];
     }
-    
+
     return result.trim();
   };
-  
+
   if (num < 1000) {
     return readGroup(num, true);
   }
-  
+
   const millions = Math.floor(num / 1000000);
   const thousands = Math.floor((num % 1000000) / 1000);
   const remainder = num % 1000;
-  
+
   let result = '';
-  
+
   if (millions > 0) {
     result += readGroup(millions) + ' triệu ';
   }
-  
+
   if (thousands > 0) {
     if (thousands < 10 && millions > 0) {
       result += 'không trăm ';
@@ -130,14 +144,14 @@ export const numberToVietnameseWords = (num: number): string => {
   } else if (millions > 0 && remainder > 0) {
     result += 'không nghìn ';
   }
-  
+
   if (remainder > 0) {
     if (remainder < 100 && (millions > 0 || thousands > 0)) {
       result += 'không trăm ';
     }
     result += readGroup(remainder, true);
   }
-  
+
   return result.trim();
 };
 
@@ -156,7 +170,7 @@ const downloadCSV = (content: string, fileName: string) => {
   const blob = new Blob([bom + content], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
-  
+
   link.setAttribute('href', url);
   link.setAttribute('download', fileName);
   link.style.visibility = 'hidden';
@@ -170,13 +184,13 @@ export const exportTransactionsToExcel = (transactions: Transaction[], projects:
   const uniqueProjects = new Set(transactions.map(t => t.projectId)).size;
   const disbursedItems = transactions.filter(t => t.status === TransactionStatus.DISBURSED);
   const notDisbursedItems = transactions.filter(t => t.status !== TransactionStatus.DISBURSED);
-  
+
   // Helper to calculate total payout (approved + interest + supplementary)
   const calculateTotalPayout = (t: Transaction) => {
     const project = projects.find(p => p.id === t.projectId);
     const baseDate = t.effectiveInterestDate || project?.interestStartDate;
     let interest = 0;
-    
+
     if (t.status === TransactionStatus.DISBURSED && t.disbursementDate) {
       // Đã giải ngân: tính lãi đến ngày giải ngân thực tế
       interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
@@ -190,17 +204,17 @@ export const exportTransactionsToExcel = (transactions: Transaction[], projects:
 
   const moneyDisbursed = disbursedItems.reduce((sum, t) => sum + calculateTotalPayout(t), 0);
   const moneyNotDisbursed = notDisbursedItems.reduce((sum, t) => sum + calculateTotalPayout(t), 0);
-  
+
   const totalInterest = transactions.reduce((sum, t) => {
-      const project = projects.find(p => p.id === t.projectId);
-      const baseDate = t.effectiveInterestDate || project?.interestStartDate;
-      
-      if (t.status === TransactionStatus.DISBURSED && t.disbursementDate) {
-           return sum + calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
-      } else if (t.status !== TransactionStatus.DISBURSED) {
-           return sum + calculateInterest(t.compensation.totalApproved, interestRate, baseDate);
-      }
-      return sum;
+    const project = projects.find(p => p.id === t.projectId);
+    const baseDate = t.effectiveInterestDate || project?.interestStartDate;
+
+    if (t.status === TransactionStatus.DISBURSED && t.disbursementDate) {
+      return sum + calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
+    } else if (t.status !== TransactionStatus.DISBURSED) {
+      return sum + calculateInterest(t.compensation.totalApproved, interestRate, baseDate);
+    }
+    return sum;
   }, 0);
 
   // 2. Build CSV Content
@@ -245,7 +259,7 @@ export const exportTransactionsToExcel = (transactions: Transaction[], projects:
 
   transactions.forEach((t, index) => {
     const project = projects.find(p => p.id === t.projectId);
-    
+
     // Calculate individual interest
     const baseDate = t.effectiveInterestDate || project?.interestStartDate;
     let currentInterest = 0;
@@ -260,13 +274,13 @@ export const exportTransactionsToExcel = (transactions: Transaction[], projects:
     // Determine date display
     let displayDateStr = '';
     if (t.status === TransactionStatus.DISBURSED && t.disbursementDate) {
-        displayDateStr = formatDate(t.disbursementDate);
+      displayDateStr = formatDate(t.disbursementDate);
     } else if (baseDate) {
-        displayDateStr = formatDate(baseDate);
+      displayDateStr = formatDate(baseDate);
     }
 
     rows.push([
-      index + 1,
+      t.stt || index + 1,
       t.id,
       t.household.id,
       project ? project.code : t.projectId,
@@ -287,8 +301,8 @@ export const exportTransactionsToExcel = (transactions: Transaction[], projects:
 
   // Convert arrays to CSV string
   const csvContent = rows.map(e => e.join(",")).join("\n");
-  const fileName = `Bao_cao_giao_dich_${new Date().toISOString().slice(0,10)}.csv`;
-  
+  const fileName = `Bao_cao_giao_dich_${new Date().toISOString().slice(0, 10)}.csv`;
+
   downloadCSV(csvContent, fileName);
 };
 
@@ -312,7 +326,7 @@ export const exportAuditLogsToExcel = (auditLogs: AuditLogItem[]) => {
   });
 
   const csvContent = rows.map(e => e.join(",")).join("\n");
-  const fileName = `Audit_Log_${new Date().toISOString().slice(0,10)}.csv`;
+  const fileName = `Audit_Log_${new Date().toISOString().slice(0, 10)}.csv`;
 
   downloadCSV(csvContent, fileName);
 };

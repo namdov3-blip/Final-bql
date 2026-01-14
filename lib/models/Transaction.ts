@@ -39,6 +39,7 @@ export interface ITransaction extends Document {
     notes?: string;
     history: ITransactionLog[];
     updatedAt: Date;
+    stt?: string | number;
 }
 
 const TransactionLogSchema = new Schema<ITransactionLog>({
@@ -82,13 +83,14 @@ const TransactionSchema = new Schema<ITransaction>({
     effectiveInterestDate: { type: Date },
     supplementaryAmount: { type: Number, default: 0 },
     notes: { type: String },
-    history: { type: [TransactionLogSchema], default: [] }
+    history: { type: [TransactionLogSchema], default: [] },
+    stt: { type: String }
 }, { timestamps: true });
 
 // Index for faster queries
 TransactionSchema.index({ projectId: 1 });
 TransactionSchema.index({ status: 1 });
-TransactionSchema.index({ 'household.name': 'text' });
+TransactionSchema.index({ stt: 1, 'household.name': 1 });
 TransactionSchema.index({ updatedAt: -1 });
 
 // Ensure virtual fields (like id) are serialized and _id is removed

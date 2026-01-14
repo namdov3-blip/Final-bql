@@ -88,6 +88,7 @@ export interface Transaction {
   history?: TransactionLog[];
   supplementaryAmount?: number; // Số tiền bổ sung
   supplementaryNote?: string; // Ghi chú tiền bổ sung
+  stt?: string | number;
 }
 
 export interface Project {

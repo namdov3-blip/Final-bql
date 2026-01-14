@@ -39,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             const [transactions, total] = await Promise.all([
                 (BankTransaction as any).find(orgFilter)
-                    .sort({ date: 1 })
+                    .sort({ _id: -1 })
                     .skip(skip)
                     .limit(limitNum),
                 (BankTransaction as any).countDocuments(orgFilter)
@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
 
             // Get current balance FOR THIS ORG
-            const lastTx = await (BankTransaction as any).findOne(orgFilter).sort({ date: -1 });
+            const lastTx = await (BankTransaction as any).findOne(orgFilter).sort({ _id: -1 });
             const currentBalance = lastTx?.runningBalance || 0;
 
             // Calculate signed amount based on type

@@ -108,20 +108,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(404).json({ error: 'Không tìm thấy dự án' });
             }
 
-            // 1. Ghi nhận rút tiền (Thu hồi dự toán)
+            // 1. Ghi nhận rút tiền (Hủy toàn bộ dòng tiền của dự án này)
             const org = project.organization;
-            const lastBankTx = await (BankTransaction as any).findOne({ organization: org }).sort({ date: -1 });
-            const currentBalance = lastBankTx?.runningBalance || 0;
-            const withdrawAmount = project.totalBudget || 0;
+            const projectBankTxs = await (BankTransaction as any).find({ projectId: id });
+            const netImpact = projectBankTxs.reduce((sum: number, tx: any) => sum + tx.amount, 0);
 
-            if (withdrawAmount > 0) {
+            if (netImpact !== 0) {
+                const lastBankTx = await (BankTransaction as any).findOne({ organization: org }).sort({ _id: -1 });
+                const currentBalance = lastBankTx?.runningBalance || 0;
+
                 await (BankTransaction as any).create({
                     type: 'Rút tiền',
-                    amount: -withdrawAmount,
+                    amount: -netImpact,
                     date: new Date(),
-                    note: `Xóa dự án: ${project.code}. Thu hồi dự toán.`,
+                    note: `Xóa dự án: ${project.code}. Thu hồi toàn bộ dòng hiện (Dự toán + Lãi/Phát sinh).`,
                     createdBy: payload.name,
-                    runningBalance: currentBalance - withdrawAmount,
+                    runningBalance: currentBalance - netImpact,
                     organization: org,
                     projectId: project._id,
                     updatedAt: new Date()
@@ -139,7 +141,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 role: payload.role,
                 action: 'Xóa dự án',
                 target: `Dự án ${project.code}`,
-                details: `Đã xóa dự án ${project.name}, thu hồi dự toán ${withdrawAmount.toLocaleString('vi-VN')}đ và xóa tất cả giao dịch liên quan`
+                details: `Đã xóa dự án ${project.name}, thu hồi toàn bộ dòng tiền ${netImpact.toLocaleString('vi-VN')}đ và xóa tất cả giao dịch liên quan`
             });
 
             return res.status(200).json({ success: true, message: 'Đã xóa dự án' });

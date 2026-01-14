@@ -75,7 +75,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const [transactions, total] = await Promise.all([
             (Transaction as any).find(filter)
                 .populate('projectId', 'code name interestStartDate organization')
-                .sort({ 'household.name': 1 })
+                .sort({ stt: 1, 'household.name': 1 })
+                .collation({ locale: 'en', numericOrdering: true })
                 .skip(skip)
                 .limit(limitNum),
             (Transaction as any).countDocuments(filter)

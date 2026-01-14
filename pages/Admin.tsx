@@ -12,6 +12,8 @@ interface AdminProps {
   onUpdateUser: (user: User) => void;
   interestRate: number;
   onUpdateInterestRate: (newRate: number) => void;
+  bankInterestRate: number;
+  onUpdateBankInterestRate: (newRate: number) => void;
   interestHistory: InterestHistoryLog[];
   currentUser: User;
   setAuditLogs: React.Dispatch<React.SetStateAction<AuditLogItem[]>>;
@@ -25,6 +27,8 @@ export const Admin: React.FC<AdminProps> = ({
   onUpdateUser,
   interestRate,
   onUpdateInterestRate,
+  bankInterestRate,
+  onUpdateBankInterestRate,
   interestHistory,
   currentUser,
   setAuditLogs,
@@ -47,6 +51,9 @@ export const Admin: React.FC<AdminProps> = ({
 
   const [tempInterestRate, setTempInterestRate] = useState(interestRate);
   const [interestRateInput, setInterestRateInput] = useState(formatNumberWithComma(interestRate));
+
+  const [tempBankInterestRate, setTempBankInterestRate] = useState(bankInterestRate);
+  const [bankInterestRateInput, setBankInterestRateInput] = useState(formatNumberWithComma(bankInterestRate));
 
   const availablePermissions = [
     { id: 'dashboard', label: 'Tổng quan (Dashboard)' },
@@ -109,12 +116,16 @@ export const Admin: React.FC<AdminProps> = ({
     setInterestRateInput(formatNumberWithComma(interestRate));
   }, [interestRate]);
 
+  React.useEffect(() => {
+    setTempBankInterestRate(bankInterestRate);
+    setBankInterestRateInput(formatNumberWithComma(bankInterestRate));
+  }, [bankInterestRate]);
+
   const handleInterestRateChange = (value: string) => {
     setInterestRateInput(value);
     const parsed = parseNumberFromComma(value);
     setTempInterestRate(parsed);
   };
-
   const handleSaveInterest = () => {
     const parsed = parseNumberFromComma(interestRateInput);
     if (parsed !== interestRate && parsed > 0) {
@@ -139,6 +150,31 @@ export const Admin: React.FC<AdminProps> = ({
         action: 'Cấu hình lãi suất',
         target: 'Hệ thống',
         details: `Thay đổi lãi suất từ ${oldRate}% sang ${parsed}%`
+      }]);
+    }
+  };
+
+  const handleBankInterestRateChange = (value: string) => {
+    setBankInterestRateInput(value);
+    const parsed = parseNumberFromComma(value);
+    setTempBankInterestRate(parsed);
+  };
+
+  const handleSaveBankInterest = () => {
+    const parsed = parseNumberFromComma(bankInterestRateInput);
+    if (parsed !== bankInterestRate && parsed >= 0) {
+      onUpdateBankInterestRate(parsed);
+      alert("Đã cập nhật lãi suất ngân hàng thành công!");
+
+      // Log audit
+      setAuditLogs(prev => [...prev, {
+        id: `audit-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        actor: currentUser.name,
+        role: currentUser.role,
+        action: 'Cấu hình lãi suất NH',
+        target: 'Hệ thống',
+        details: `Thay đổi lãi suất ngân hàng từ ${bankInterestRate}% sang ${parsed}%`
       }]);
     }
   };
@@ -526,8 +562,60 @@ export const Admin: React.FC<AdminProps> = ({
                 </button>
               </div>
               <p className="text-[11px] font-medium text-slate-600 mt-3 leading-relaxed">
-                * Lưu ý: Việc thay đổi lãi suất sẽ được ghi lại trong lịch sử và Audit Log.
+                * Lưu ý: Lãi suất năm áp dụng cho các dự án và hộ dân.
               </p>
+            </GlassCard>
+
+            <GlassCard className="border-slate-300 shadow-md p-8">
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-3">Lãi suất gửi tiết kiệm NH (% tháng)</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={bankInterestRateInput}
+                  onChange={(e) => handleBankInterestRateChange(e.target.value)}
+                  onBlur={(e) => {
+                    const parsed = parseNumberFromComma(e.target.value);
+                    setBankInterestRateInput(formatNumberWithComma(parsed));
+                  }}
+                  placeholder="Nhập lãi suất NH (ví dụ: 0,5 hoặc 0.5)"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-lg font-bold text-black focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600 shadow-inner transition-all"
+                />
+                <button
+                  onClick={handleSaveBankInterest}
+                  className="bg-emerald-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all flex items-center gap-2"
+                >
+                  <Save size={16} /> Lưu
+                </button>
+              </div>
+              <p className="text-[11px] font-medium text-slate-600 mt-3 leading-relaxed">
+                * Lưu ý: Lãi suất này dùng để tự động cộng lãi tiết kiệm vào mùng 1 hàng tháng.
+              </p>
+            </GlassCard>
+
+            <GlassCard className="border-red-300 shadow-md p-8 bg-red-50/30">
+              <label className="block text-xs font-bold text-red-600 uppercase tracking-wide mb-3">⚠️ Khu vực nguy hiểm</label>
+              <p className="text-xs text-slate-600 mb-4">
+                Reset toàn bộ dữ liệu (dự án, giao dịch, lịch sử ngân hàng). Tài khoản và cài đặt sẽ được giữ lại.
+              </p>
+              <button
+                onClick={async () => {
+                  if (!confirm('⚠️ BẠN CHẮC CHẮN MUỐN XÓA TẤT CẢ DỮ LIỆU?\n\nHành động này sẽ:\n- Xóa tất cả dự án\n- Xóa tất cả giao dịch\n- Xóa toàn bộ lịch sử ngân hàng\n\nTài khoản và cài đặt sẽ được giữ lại.\n\nKhông thể hoàn tác!')) return;
+
+                  if (!confirm('⚠️ XÁC NHẬN LẦN CUỐI!\n\nBạn có chắc chắn 100% muốn reset dữ liệu không?')) return;
+
+                  try {
+                    const api = (await import('../services/api')).default;
+                    const result = await api.admin.resetData();
+                    alert(`✅ ${result.message}\n\nĐã xóa:\n- ${result.data.projectsDeleted} dự án\n- ${result.data.transactionsDeleted} giao dịch\n- ${result.data.bankTransactionsDeleted} giao dịch ngân hàng`);
+                    window.location.reload();
+                  } catch (err: any) {
+                    alert('❌ Lỗi: ' + err.message);
+                  }
+                }}
+                className="bg-red-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-red-700 shadow-lg shadow-red-200 transition-all flex items-center gap-2"
+              >
+                🗑️ Reset toàn bộ dữ liệu
+              </button>
             </GlassCard>
           </div>
 

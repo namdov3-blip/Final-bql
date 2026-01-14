@@ -13,6 +13,8 @@ export interface ISettings extends Document {
     interestRate: number;
     interestHistory: IInterestHistoryLog[];
     bankOpeningBalance: number;
+    bankInterestRate: number;
+    lastBankInterestAccrued?: Date;
 }
 
 const InterestHistorySchema = new Schema<IInterestHistoryLog>({
@@ -26,7 +28,9 @@ const SettingsSchema = new Schema<ISettings>({
     key: { type: String, default: 'global', unique: true },
     interestRate: { type: Number, default: 6.5 },
     interestHistory: { type: [InterestHistorySchema], default: [] },
-    bankOpeningBalance: { type: Number, default: 0 }
+    bankOpeningBalance: { type: Number, default: 0 },
+    bankInterestRate: { type: Number, default: 0.5 }, // Monthly interest rate
+    lastBankInterestAccrued: { type: Date }
 });
 
 // Ensure virtual fields (like id) are serialized and _id is removed

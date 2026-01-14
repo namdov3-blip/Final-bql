@@ -80,7 +80,7 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
               project: res.data.project,
               transactions: res.data.transactions,
               rawRows: res.data.transactions.map((t: any, i: number) => ({
-                stt: i + 1,
+                stt: t.stt || (i + 1),
                 name: t.household.name,
                 cccd: t.household.cccd,
                 maHo: t.household.id,

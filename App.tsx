@@ -48,6 +48,7 @@ const App: React.FC = () => {
     reconciledBalance: 0
   });
   const [interestRate, setInterestRate] = useState<number>(6.5);
+  const [bankInterestRate, setBankInterestRate] = useState<number>(0.5);
   const [interestHistory, setInterestHistory] = useState<InterestHistoryLog[]>([]);
 
   // Load all data from API
@@ -70,7 +71,7 @@ const App: React.FC = () => {
         api.bank.listTransactions().catch(() => ({ data: [] })),
         api.users.list().catch(() => ({ data: [] })),
         api.audit.list().catch(() => ({ data: [] })),
-        api.settings.getInterestRate().catch(() => ({ data: { interestRate: 6.5, history: [] } }))
+        api.settings.getInterestRate().catch(() => ({ data: { interestRate: 6.5, bankInterestRate: 0.5, history: [] } }))
       ]);
 
       setProjects(projectsRes.data || []);
@@ -80,6 +81,7 @@ const App: React.FC = () => {
       setUsers(usersRes.data || []);
       setAuditLogs(auditRes.data || []);
       setInterestRate(settingsRes.data?.interestRate || 6.5);
+      setBankInterestRate(settingsRes.data?.bankInterestRate || 0.5);
       setInterestHistory(settingsRes.data?.history || []);
     } catch (err: any) {
       console.error('Failed to load data:', err);
@@ -135,6 +137,23 @@ const App: React.FC = () => {
       }
     }
   }, [transactions, selectedTransaction]);
+
+  // Trigger monthly bank interest accrual
+  useEffect(() => {
+    if (currentUser) {
+      console.log('Checking for monthly bank interest accrual...');
+      api.bank.accrueInterest()
+        .then(res => {
+          if (res.data?.accruedCount > 0) {
+            console.log(`Auto-accrued bank interest for ${res.data.accruedCount} organizations.`);
+            loadAllData(true); // Refresh data silently
+          }
+        })
+        .catch(err => {
+          console.warn('Bank interest accrual trigger (might be skip if not 1st of month):', err.message);
+        });
+    }
+  }, [currentUser, loadAllData]);
 
   // Handle login
   const handleLogin = async (user: User) => {
@@ -358,6 +377,12 @@ const App: React.FC = () => {
             const res = await api.settings.getInterestRate();
             setInterestRate(res.data.interestRate);
             setInterestHistory(res.data.history || []);
+          }}
+          bankInterestRate={bankInterestRate}
+          onUpdateBankInterestRate={async (rate) => {
+            await api.settings.updateBankInterestRate(rate, currentUser?.name || 'Unknown');
+            const res = await api.settings.getInterestRate();
+            setBankInterestRate(res.data.bankInterestRate);
           }}
           interestHistory={interestHistory}
           currentUser={currentUser!}

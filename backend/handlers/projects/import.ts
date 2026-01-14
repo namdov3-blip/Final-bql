@@ -168,85 +168,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             for (const sheetName of workbook.SheetNames) {
                 const sheet = workbook.Sheets[sheetName];
                 const rawData: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-                if (rawData.length === 0) continue;
+                if (rawData.length < 5) continue;
 
-                let nameIdx = -1, amountIdx = -1, cccdIdx = -1, maHoIdx = -1, qdIdx = -1, dateIdx = -1;
-                let pCodeIdx = -1, pNameIdx = -1, payTypeIdx = -1;
-                let dataStartRow = 0;
+                // Rigid logic: skip first 4 rows (headers), start from index 4
+                // Column mapping (0-indexed) from Bản 2:
+                // Index 2: Họ và tên chủ sử dụng đất
+                // Index 5: Số QĐ
+                // Index 6: Ngày
+                // Index 9: Loại Chi Trả
+                // Index 10: Mã Hộ Dân
+                // Index 23: Tổng số tiền bồi thường
 
-                // Find headers
-                for (let i = 0; i < Math.min(rawData.length, 30); i++) {
+                for (let i = 4; i < rawData.length; i++) {
                     const row = rawData[i];
-                    if (!row || row.length < 2) continue;
+                    if (!row || row.length < 3) continue;
 
-                    const combinedRowCells: string[] = [];
-                    for (let c = 0; c < row.length; c++) {
-                        let combined = '';
-                        for (let r = Math.max(0, i - 3); r <= Math.min(rawData.length - 1, i + 3); r++) {
-                            const val = rawData[r][c];
-                            if (val && isNaN(Number(val))) {
-                                const s = val.toString().trim();
-                                if (!combined.includes(s)) combined = (combined + ' ' + s).trim();
-                            }
-                        }
-                        combinedRowCells[c] = combined;
-                    }
+                    const name = row[2]?.toString().trim();
+                    if (!name || name === '') continue;
 
-                    const foundName = findInKeys(combinedRowCells, namePatterns);
-                    const foundAmount = findInKeys(combinedRowCells, amountPatterns);
+                    const amount = parseVietnameseNumber(row[23]);
+                    if (amount <= 0) continue;
 
-                    if (foundName && foundAmount) {
-                        nameIdx = combinedRowCells.indexOf(foundName);
-                        amountIdx = combinedRowCells.indexOf(foundAmount);
-
-                        const detectIdx = (patterns: string[]) => {
-                            const found = findInKeys(combinedRowCells, patterns);
-                            return found ? combinedRowCells.indexOf(found) : -1;
-                        };
-
-                        cccdIdx = detectIdx(cccdPatterns);
-                        maHoIdx = detectIdx(maHoPatterns);
-                        qdIdx = detectIdx(qdPatterns);
-                        dateIdx = detectIdx(datePatterns);
-                        pCodeIdx = detectIdx(pCodePatterns);
-                        pNameIdx = detectIdx(pNamePatterns);
-                        payTypeIdx = detectIdx(payTypePatterns);
-
-                        dataStartRow = i + 1;
-                        break;
-                    }
+                    transactionsData.push({
+                        name,
+                        cccd: '',
+                        maHo: row[10]?.toString() || `HO-${i}`,
+                        qd: row[5]?.toString().trim() || '',
+                        date: parseExcelDate(row[6]),
+                        projectCode: projectCode || '',
+                        projectName: projectName || '',
+                        paymentType: row[9]?.toString() || '',
+                        amount,
+                        stt: row[1]?.toString() || (i - 3).toString()
+                    });
+                    totalBudget += amount;
                 }
-
-                if (nameIdx !== -1 && amountIdx !== -1) {
-                    for (let i = dataStartRow; i < rawData.length; i++) {
-                        const row = rawData[i];
-                        if (!row) continue;
-
-                        const name = row[nameIdx]?.toString().trim();
-                        const amount = parseVietnameseNumber(row[amountIdx]);
-
-                        if (!name || name === '') continue;
-                        const normName = normalize(name);
-                        if (normName === 'tongcong' || normName === 'cong' || normName.startsWith('ghichu')) continue;
-                        if (amount <= 0) continue;
-
-                        const getVal = (idx: number) => (idx !== -1 ? row[idx] : undefined);
-
-                        transactionsData.push({
-                            name,
-                            cccd: getVal(cccdIdx)?.toString() || '',
-                            maHo: getVal(maHoIdx)?.toString() || '',
-                            qd: getVal(qdIdx)?.toString() || '',
-                            date: parseExcelDate(getVal(dateIdx)),
-                            projectCode: getVal(pCodeIdx)?.toString() || projectCode || '',
-                            projectName: getVal(pNameIdx)?.toString() || projectName || '',
-                            paymentType: getVal(payTypeIdx)?.toString() || '',
-                            amount
-                        });
-                        totalBudget += amount;
-                    }
-                    if (transactionsData.length > 0) break; // Found data in this sheet, stop
-                }
+                if (transactionsData.length > 0) break; // Found data
             }
         }
 
@@ -299,7 +256,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     paymentType: row.paymentType,
                     projectCode: row.projectCode,
                     projectName: row.projectName,
-                    status: 'Chưa giải ngân'
+                    status: 'Chưa giải ngân',
+                    stt: row.stt || (index + 1).toString()
                 };
             })
         };
@@ -335,7 +293,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 await project.save();
             }
 
-            const lastBankTx = await (BankTransaction as any).findOne({ organization: currentUser.organization }).sort({ date: -1 });
+            const lastBankTx = await (BankTransaction as any).findOne({ organization: currentUser.organization }).sort({ _id: -1 });
             const currentBalance = lastBankTx?.runningBalance || 0;
 
             const bankTx = await (BankTransaction as any).create({

@@ -51,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const now = new Date();
 
         // Get current bank balance for this organization
-        const lastBankTx = await (BankTransaction as any).findOne({ organization: org }).sort({ date: -1 });
+        const lastBankTx = await (BankTransaction as any).findOne({ organization: org }).sort({ _id: -1 });
         const settings = await (Settings as any).findOne({ key: 'global' });
         const openingBalance = settings?.bankOpeningBalance || 0;
         const currentBalance = lastBankTx?.runningBalance || openingBalance;

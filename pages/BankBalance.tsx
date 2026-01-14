@@ -1,19 +1,19 @@
 
 import React, { useState, useMemo } from 'react';
 import { GlassCard } from '../components/GlassCard';
-import { 
-  BankTransaction, 
-  BankTransactionType, 
-  BankAccount, 
-  User, 
+import {
+  BankTransaction,
+  BankTransactionType,
+  BankAccount,
+  User,
   Transaction,
   Project,
   TransactionStatus,
   AuditLogItem
 } from '../types';
 import { formatCurrency, formatDate, calculateInterest, formatNumberWithComma, parseNumberFromComma } from '../utils/helpers';
-import { 
-  Wallet, Plus, History, AlertCircle, PiggyBank, X 
+import {
+  Wallet, Plus, History, AlertCircle, PiggyBank, X
 } from 'lucide-react';
 
 interface BankBalanceProps {
@@ -28,12 +28,12 @@ interface BankBalanceProps {
   setAuditLogs: React.Dispatch<React.SetStateAction<AuditLogItem[]>>;
 }
 
-export const BankBalance: React.FC<BankBalanceProps> = ({ 
+export const BankBalance: React.FC<BankBalanceProps> = ({
   transactions,
   projects,
-  bankAccount, 
-  bankTransactions, 
-  interestRate, 
+  bankAccount,
+  bankTransactions,
+  interestRate,
   onAddBankTransaction,
   currentUser,
   setAuditLogs,
@@ -73,7 +73,7 @@ export const BankBalance: React.FC<BankBalanceProps> = ({
       }
     });
 
-    return { 
+    return {
       principal, // Tổng gốc chưa giải ngân
       interest: Math.round(tempInterest), // Lãi tạm tính
       locked: Math.round(lockedInterest), // Lãi đã chốt (để tham khảo)
@@ -86,7 +86,7 @@ export const BankBalance: React.FC<BankBalanceProps> = ({
     if (isNaN(amountNum) || amountNum <= 0) return alert('Số tiền không hợp lệ');
     const finalAmount = txType === BankTransactionType.WITHDRAW ? -amountNum : amountNum;
     const now = new Date();
-    
+
     // Lưu audit log
     setAuditLogs(prev => [...prev, {
       id: `audit-${Date.now()}`,
@@ -97,7 +97,7 @@ export const BankBalance: React.FC<BankBalanceProps> = ({
       target: 'Giao dịch dòng tiền',
       details: `${txType === BankTransactionType.DEPOSIT ? 'Nạp' : 'Rút'} ${formatCurrency(Math.abs(finalAmount))}${txNote ? ` - ${txNote}` : ''}`
     }]);
-    
+
     onAddBankTransaction(txType, finalAmount, txNote, txDate);
     setIsTxModalOpen(false);
     setTxAmount(''); setTxNote('');
@@ -165,7 +165,7 @@ export const BankBalance: React.FC<BankBalanceProps> = ({
             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2">
               <History size={16} /> Lịch sử giao dịch dòng tiền
             </h3>
-            <button 
+            <button
               onClick={() => setIsTxModalOpen(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all shadow-lg"
             >
@@ -185,7 +185,7 @@ export const BankBalance: React.FC<BankBalanceProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {bankTransactions.slice().reverse().map((tx) => (
+                {bankTransactions.map((tx) => (
                   <tr key={tx.id} className={`hover:bg-slate-50 transition-colors ${tx.note.includes('Tự động') ? 'bg-blue-50/40 border-l-4 border-blue-500' : ''}`}>
                     <td className="p-4 text-xs font-bold text-slate-800">
                       {tx.note.includes('Tự động') ? '01/01/2026' : formatDate(tx.date)}
@@ -213,15 +213,15 @@ export const BankBalance: React.FC<BankBalanceProps> = ({
           <GlassCard className="w-full max-w-md bg-white p-6 shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold">Giao dịch dòng tiền</h3>
-              <button onClick={() => setIsTxModalOpen(false)}><X size={20}/></button>
+              <button onClick={() => setIsTxModalOpen(false)}><X size={20} /></button>
             </div>
             <div className="space-y-4">
               <div className="flex gap-2 p-1 bg-slate-100 rounded-lg">
                 <button onClick={() => setTxType(BankTransactionType.DEPOSIT)} className={`flex-1 py-2 text-xs font-bold rounded ${txType === BankTransactionType.DEPOSIT ? 'bg-white text-emerald-600 shadow' : 'text-slate-500'}`}>NẠP TIỀN</button>
                 <button onClick={() => setTxType(BankTransactionType.WITHDRAW)} className={`flex-1 py-2 text-xs font-bold rounded ${txType === BankTransactionType.WITHDRAW ? 'bg-white text-rose-600 shadow' : 'text-slate-500'}`}>RÚT TIỀN</button>
               </div>
-              <input type="text" value={txAmount} onChange={handleAmountChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-lg font-bold" placeholder="Nhập số tiền (ví dụ: 1,000,000)..." inputMode="numeric"/>
-              <textarea value={txNote} onChange={e => setTxNote(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm h-24" placeholder="Nội dung..."/>
+              <input type="text" value={txAmount} onChange={handleAmountChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-lg font-bold" placeholder="Nhập số tiền (ví dụ: 1,000,000)..." inputMode="numeric" />
+              <textarea value={txNote} onChange={e => setTxNote(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm h-24" placeholder="Nội dung..." />
               <button onClick={handleTxSubmit} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg">Xác nhận giao dịch</button>
             </div>
           </GlassCard>

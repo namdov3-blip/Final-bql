@@ -111,6 +111,10 @@ app.get('/api/bank/transactions', (req, res) => handle(req, res, './backend/hand
 app.post('/api/bank/transactions', (req, res) => handle(req, res, './backend/handlers/bank/transactions'));
 app.post('/api/bank/adjust-opening', (req, res) => handle(req, res, './backend/handlers/bank/adjust-opening'));
 app.all('/api/bank/calculate-interest', (req, res) => handle(req, res, './backend/handlers/bank/calculate-interest'));
+app.post('/api/bank/accrue-interest', (req, res) => handle(req, res, './backend/handlers/bank/accrue-interest'));
+
+// ============ ADMIN ============
+app.post('/api/admin/reset', (req, res) => handle(req, res, './backend/handlers/admin/reset-data'));
 
 // ============ USERS ============
 app.get('/api/users', (req, res) => handle(req, res, './backend/handlers/users/index'));

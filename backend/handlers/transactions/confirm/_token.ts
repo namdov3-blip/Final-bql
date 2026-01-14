@@ -119,7 +119,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(400).json({ error: 'Không tìm thấy thông tin tổ chức của dự án' });
             }
 
-            const lastBankTx = await (BankTransaction as any).findOne({ organization: org }).sort({ date: -1 });
+            const lastBankTx = await (BankTransaction as any).findOne({ organization: org }).sort({ _id: -1 });
             const settingsForBalance = await (Settings as any).findOne({ key: 'global' });
             const openingBalance = settingsForBalance?.bankOpeningBalance || 0;
             const currentBalance = lastBankTx?.runningBalance || openingBalance;

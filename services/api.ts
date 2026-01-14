@@ -135,7 +135,9 @@ export const bankAPI = {
         fetchAPI<{ data: any }>('/bank/calculate-interest', {
             method: 'POST',
             body: JSON.stringify({ month, year })
-        })
+        }),
+
+    accrueInterest: () => fetchAPI<{ data: any }>('/bank/accrue-interest', { method: 'POST' })
 };
 
 // ============ USERS ============
@@ -165,6 +167,12 @@ export const settingsAPI = {
         fetchAPI<{ data: any }>('/settings/interest-rate', {
             method: 'PUT',
             body: JSON.stringify({ interestRate: rate, actor })
+        }),
+
+    updateBankInterestRate: (rate: number, actor: string) =>
+        fetchAPI<{ data: any }>('/settings/bank-interest-rate', {
+            method: 'PUT',
+            body: JSON.stringify({ bankInterestRate: rate, actor })
         })
 };
 
@@ -178,6 +186,13 @@ export const auditAPI = {
 
         return fetchAPI<{ data: any[]; pagination: any }>(`/audit-logs?${query}`);
     }
+};
+
+// ============ ADMIN ============
+export const adminAPI = {
+    resetData: () => fetchAPI<{ success: boolean; message: string; data: any }>('/admin/reset', {
+        method: 'POST'
+    })
 };
 
 // ============ POLLING ============
@@ -200,6 +215,7 @@ export const api = {
     users: usersAPI,
     settings: settingsAPI,
     audit: auditAPI,
+    admin: adminAPI,
     poll: pollAPI
 };
 

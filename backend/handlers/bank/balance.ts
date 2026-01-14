@@ -39,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const openingBalance = settings?.bankOpeningBalance || 0;
 
         // Get last bank transaction for current balance (filtered by org)
-        const lastTransaction = await (BankTransaction as any).findOne(orgFilter).sort({ date: -1 });
+        const lastTransaction = await (BankTransaction as any).findOne(orgFilter).sort({ _id: -1 });
         const currentBalance = lastTransaction?.runningBalance || openingBalance;
 
         // Calculate total deposits and withdrawals (filtered by org)
