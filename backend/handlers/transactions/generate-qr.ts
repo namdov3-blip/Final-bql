@@ -74,8 +74,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Generate secure token
         const token = generateQRToken(id);
 
-        // Get frontend URL
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        // Get frontend URL dynamically from request
+        const protocol = req.headers['x-forwarded-proto'] || 'http';
+        const host = req.headers.host;
+        const frontendUrl = process.env.FRONTEND_URL || `${protocol}://${host}`;
         const confirmUrl = `${frontendUrl}/confirm/${token}`;
 
         // QR content should be JUST the URL for scanners to recognize it as a link
