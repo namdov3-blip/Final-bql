@@ -1,7 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import connectDB from '../../lib/mongodb';
-import { BankTransaction, Settings, AuditLog } from '../../lib/models';
-import { authMiddleware } from '../../lib/auth';
+import connectDB from '../../../lib/mongodb';
+import { BankTransaction, Settings, AuditLog } from '../../../lib/models';
+import { authMiddleware } from '../../../lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -80,3 +80,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(500).json({ error: 'Lỗi server: ' + error.message });
     }
 }
+

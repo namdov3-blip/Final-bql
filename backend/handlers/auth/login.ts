@@ -1,8 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import connectDB from '../../lib/mongodb';
-import { User, AuditLog } from '../../lib/models';
-import { comparePassword, generateToken, hashPassword } from '../../lib/auth';
-import { ORGANIZATIONS } from '../../lib/models/User';
+import connectDB from '../../../lib/mongodb';
+import { User, AuditLog } from '../../../lib/models';
+import { comparePassword, generateToken, hashPassword } from '../../../lib/auth';
+import { ORGANIZATIONS } from '../../../lib/models/User';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Enable CORS
@@ -86,3 +86,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(500).json({ error: 'Lỗi server: ' + error.message });
     }
 }
+

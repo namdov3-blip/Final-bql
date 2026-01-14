@@ -50,94 +50,94 @@ async function handle(req: Request, res: Response, importPath: string) {
 }
 
 // ============ AUTH ============
-app.post('/api/auth/login', (req, res) => handle(req, res, './api/auth/login'));
-app.get('/api/auth/me', (req, res) => handle(req, res, './api/auth/me'));
+app.post('/api/auth/login', (req, res) => handle(req, res, './backend/handlers/auth/login'));
+app.get('/api/auth/me', (req, res) => handle(req, res, './backend/handlers/auth/me'));
 
 // ============ PROJECTS ============
-app.get('/api/projects', (req, res) => handle(req, res, './api/projects/index'));
-app.post('/api/projects', (req, res) => handle(req, res, './api/projects/index'));
+app.get('/api/projects', (req, res) => handle(req, res, './backend/handlers/projects/index'));
+app.post('/api/projects', (req, res) => handle(req, res, './backend/handlers/projects/index'));
 
 app.get('/api/projects/:id', (req, res) => {
     Object.assign(req.query, req.params);
     console.log(`[SERVER] GET Project: ID=${req.params.id}, Query:`, req.query);
-    handle(req, res, './api/projects/[id]');
+    handle(req, res, './backend/handlers/projects/_id');
 });
 app.put('/api/projects/:id', (req, res) => {
     Object.assign(req.query, req.params);
     console.log(`[SERVER] PUT Project: ID=${req.params.id}, Query:`, req.query);
-    handle(req, res, './api/projects/[id]');
+    handle(req, res, './backend/handlers/projects/_id');
 });
 app.delete('/api/projects/:id', (req, res) => {
     Object.assign(req.query, req.params);
     console.log(`[SERVER] DELETE Project: ID=${req.params.id}, Query:`, req.query);
-    handle(req, res, './api/projects/[id]');
+    handle(req, res, './backend/handlers/projects/_id');
 });
 
-app.post('/api/projects/import', (req, res) => handle(req, res, './api/projects/import'));
+app.post('/api/projects/import', (req, res) => handle(req, res, './backend/handlers/projects/import'));
 
 // ============ TRANSACTIONS ============
-app.get('/api/transactions', (req, res) => handle(req, res, './api/transactions/index'));
+app.get('/api/transactions', (req, res) => handle(req, res, './backend/handlers/transactions/index'));
 
 app.get('/api/transactions/:id', (req, res) => {
     req.query = { ...req.query, id: req.params.id };
     console.log(`[SERVER] GET Transaction ID: ${req.params.id}`);
-    handle(req, res, './api/transactions/[id]');
+    handle(req, res, './backend/handlers/transactions/_id');
 });
 app.put('/api/transactions/:id', (req, res) => {
     req.query = { ...req.query, id: req.params.id };
-    handle(req, res, './api/transactions/[id]');
+    handle(req, res, './backend/handlers/transactions/_id');
 });
 app.put('/api/transactions/:id/status', (req, res) => {
     req.query = { ...req.query, id: req.params.id };
-    handle(req, res, './api/transactions/[id]/status');
+    handle(req, res, './backend/handlers/transactions/[id]/status');
 });
 app.post('/api/transactions/:id/refund', (req, res) => {
     req.query = { ...req.query, id: req.params.id };
-    handle(req, res, './api/transactions/[id]/refund');
+    handle(req, res, './backend/handlers/transactions/[id]/refund');
 });
 app.get('/api/transactions/:id/qr', (req, res) => {
     req.query = { ...req.query, id: req.params.id };
-    handle(req, res, './api/transactions/[id]/qr');
+    handle(req, res, './backend/handlers/transactions/[id]/qr');
 });
 
 app.all('/api/transactions/confirm/:token', (req, res) => {
     Object.assign(req.query, req.params);
-    handle(req, res, './api/transactions/confirm/[token]');
+    handle(req, res, './backend/handlers/transactions/confirm/_token');
 });
 
 // ============ BANK ============
-app.get('/api/bank/balance', (req, res) => handle(req, res, './api/bank/balance'));
-app.get('/api/bank/transactions', (req, res) => handle(req, res, './api/bank/transactions'));
-app.post('/api/bank/transactions', (req, res) => handle(req, res, './api/bank/transactions'));
-app.post('/api/bank/adjust-opening', (req, res) => handle(req, res, './api/bank/adjust-opening'));
-app.all('/api/bank/calculate-interest', (req, res) => handle(req, res, './api/bank/calculate-interest'));
+app.get('/api/bank/balance', (req, res) => handle(req, res, './backend/handlers/bank/balance'));
+app.get('/api/bank/transactions', (req, res) => handle(req, res, './backend/handlers/bank/transactions'));
+app.post('/api/bank/transactions', (req, res) => handle(req, res, './backend/handlers/bank/transactions'));
+app.post('/api/bank/adjust-opening', (req, res) => handle(req, res, './backend/handlers/bank/adjust-opening'));
+app.all('/api/bank/calculate-interest', (req, res) => handle(req, res, './backend/handlers/bank/calculate-interest'));
 
 // ============ USERS ============
-app.get('/api/users', (req, res) => handle(req, res, './api/users/index'));
-app.post('/api/users', (req, res) => handle(req, res, './api/users/index'));
+app.get('/api/users', (req, res) => handle(req, res, './backend/handlers/users/index'));
+app.post('/api/users', (req, res) => handle(req, res, './backend/handlers/users/index'));
 
 app.get('/api/users/:id', (req, res) => {
     req.query = { ...req.query, id: req.params.id };
-    handle(req, res, './api/users/[id]');
+    handle(req, res, './backend/handlers/users/_id');
 });
 app.put('/api/users/:id', (req, res) => {
     req.query = { ...req.query, id: req.params.id };
-    handle(req, res, './api/users/[id]');
+    handle(req, res, './backend/handlers/users/_id');
 });
 app.delete('/api/users/:id', (req, res) => {
     req.query = { ...req.query, id: req.params.id };
-    handle(req, res, './api/users/[id]');
+    handle(req, res, './backend/handlers/users/_id');
 });
 
 // ============ SETTINGS ============
-app.get('/api/settings/interest-rate', (req, res) => handle(req, res, './api/settings/interest-rate'));
-app.put('/api/settings/interest-rate', (req, res) => handle(req, res, './api/settings/interest-rate'));
+app.get('/api/settings/interest-rate', (req, res) => handle(req, res, './backend/handlers/settings/interest-rate'));
+app.put('/api/settings/interest-rate', (req, res) => handle(req, res, './backend/handlers/settings/interest-rate'));
 
 // ============ AUDIT LOGS ============
-app.get('/api/audit-logs', (req, res) => handle(req, res, './api/audit-logs'));
+app.get('/api/audit-logs', (req, res) => handle(req, res, './backend/handlers/audit-logs'));
 
 // ============ POLLING ============
-app.get('/api/events/poll', (req, res) => handle(req, res, './api/events/poll'));
+app.get('/api/events/poll', (req, res) => handle(req, res, './backend/handlers/events/poll'));
 
 // Start server
 const server = app.listen(PORT, () => {
