@@ -18,12 +18,12 @@ interface AdminProps {
   setInterestHistory: React.Dispatch<React.SetStateAction<InterestHistoryLog[]>>;
 }
 
-export const Admin: React.FC<AdminProps> = ({ 
-  auditLogs, 
-  users, 
-  onAddUser, 
+export const Admin: React.FC<AdminProps> = ({
+  auditLogs,
+  users,
+  onAddUser,
   onUpdateUser,
-  interestRate, 
+  interestRate,
   onUpdateInterestRate,
   interestHistory,
   currentUser,
@@ -31,7 +31,7 @@ export const Admin: React.FC<AdminProps> = ({
   setInterestHistory
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'audit' | 'users' | 'interest'>('audit');
-  
+
   // State for adding new user
   const [newUser, setNewUser] = useState<Partial<User>>({
     name: '',
@@ -59,7 +59,7 @@ export const Admin: React.FC<AdminProps> = ({
   const handleCreateUser = () => {
     if (!newUser.name) return alert("Vui lòng nhập tên user");
     if (!newUser.password) return alert("Vui lòng nhập mật khẩu");
-    
+
     const now = new Date();
     const userToAdd: User = {
       id: `u-${Date.now()}`,
@@ -71,7 +71,8 @@ export const Admin: React.FC<AdminProps> = ({
       organization: newUser.organization
     };
     onAddUser(userToAdd);
-    
+    alert(`Đã tạo tài khoản "${userToAdd.name}" thành công!`);
+
     // Log audit
     setAuditLogs(prev => [...prev, {
       id: `audit-${Date.now()}`,
@@ -82,7 +83,7 @@ export const Admin: React.FC<AdminProps> = ({
       target: `User ${userToAdd.name}`,
       details: `Tạo tài khoản mới: ${userToAdd.name} (${userToAdd.role})${userToAdd.organization ? ` - ${userToAdd.organization}` : ''}`
     }]);
-    
+
     setNewUser({ name: '', role: 'User2', permissions: ['dashboard', 'projects', 'transactions'], password: '', organization: undefined });
   };
 
@@ -117,28 +118,28 @@ export const Admin: React.FC<AdminProps> = ({
   const handleSaveInterest = () => {
     const parsed = parseNumberFromComma(interestRateInput);
     if (parsed !== interestRate && parsed > 0) {
-        const now = new Date();
-        const oldRate = interestRate;
-        onUpdateInterestRate(parsed);
-        
-        // Lưu lịch sử thay đổi lãi suất
-        setInterestHistory(prev => [...prev, {
-          timestamp: now.toISOString(),
-          oldRate,
-          newRate: parsed,
-          actor: currentUser.name
-        }]);
-        
-        // Log audit
-        setAuditLogs(prev => [...prev, {
-          id: `audit-${Date.now()}`,
-          timestamp: now.toISOString(),
-          actor: currentUser.name,
-          role: currentUser.role,
-          action: 'Cấu hình lãi suất',
-          target: 'Hệ thống',
-          details: `Thay đổi lãi suất từ ${oldRate}% sang ${parsed}%`
-        }]);
+      const now = new Date();
+      const oldRate = interestRate;
+      onUpdateInterestRate(parsed);
+
+      // Lưu lịch sử thay đổi lãi suất
+      setInterestHistory(prev => [...prev, {
+        timestamp: now.toISOString(),
+        oldRate,
+        newRate: parsed,
+        actor: currentUser.name
+      }]);
+
+      // Log audit
+      setAuditLogs(prev => [...prev, {
+        id: `audit-${Date.now()}`,
+        timestamp: now.toISOString(),
+        actor: currentUser.name,
+        role: currentUser.role,
+        action: 'Cấu hình lãi suất',
+        target: 'Hệ thống',
+        details: `Thay đổi lãi suất từ ${oldRate}% sang ${parsed}%`
+      }]);
     }
   };
 
@@ -155,7 +156,8 @@ export const Admin: React.FC<AdminProps> = ({
         updated.password = newPassword;
       }
       onUpdateUser(updated);
-      
+      alert(`Đã cập nhật tài khoản "${updated.name}" thành công!`);
+
       // Log audit
       setAuditLogs(prev => [...prev, {
         id: `audit-${Date.now()}`,
@@ -166,7 +168,7 @@ export const Admin: React.FC<AdminProps> = ({
         target: `User ${updated.name}`,
         details: `Cập nhật thông tin tài khoản: ${updated.name}${newPassword ? ' (đã đổi mật khẩu)' : ''}`
       }]);
-      
+
       setEditingUser(null);
     }
   };
@@ -187,33 +189,33 @@ export const Admin: React.FC<AdminProps> = ({
 
       {/* Sub Tabs */}
       <div className="flex space-x-2 border-b border-slate-200 pb-1">
-        <button 
-           onClick={() => setActiveSubTab('audit')}
-           className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${activeSubTab === 'audit' ? 'bg-white text-blue-700 border-x border-t border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+        <button
+          onClick={() => setActiveSubTab('audit')}
+          className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${activeSubTab === 'audit' ? 'bg-white text-blue-700 border-x border-t border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
         >
-          <div className="flex items-center gap-2"><FileClock size={16}/> Audit Log</div>
+          <div className="flex items-center gap-2"><FileClock size={16} /> Audit Log</div>
         </button>
-        <button 
-           onClick={() => setActiveSubTab('users')}
-           className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${activeSubTab === 'users' ? 'bg-white text-blue-700 border-x border-t border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+        <button
+          onClick={() => setActiveSubTab('users')}
+          className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${activeSubTab === 'users' ? 'bg-white text-blue-700 border-x border-t border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
         >
-           <div className="flex items-center gap-2"><UserPlus size={16}/> Quản lý User</div>
+          <div className="flex items-center gap-2"><UserPlus size={16} /> Quản lý User</div>
         </button>
-        <button 
-           onClick={() => setActiveSubTab('interest')}
-           className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${activeSubTab === 'interest' ? 'bg-white text-blue-700 border-x border-t border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+        <button
+          onClick={() => setActiveSubTab('interest')}
+          className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${activeSubTab === 'interest' ? 'bg-white text-blue-700 border-x border-t border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
         >
-           <div className="flex items-center gap-2"><Shield size={16}/> Cấu hình Lãi</div>
+          <div className="flex items-center gap-2"><Shield size={16} /> Cấu hình Lãi</div>
         </button>
       </div>
 
       {/* Content Area */}
-      
+
       {/* --- AUDIT LOG TAB --- */}
       {activeSubTab === 'audit' && (
         <div className="space-y-4">
           <div className="flex justify-end">
-            <button 
+            <button
               onClick={handleDownloadAuditLog}
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition-colors shadow-sm"
             >
@@ -257,311 +259,311 @@ export const Admin: React.FC<AdminProps> = ({
       {/* --- USER MANAGEMENT TAB --- */}
       {activeSubTab === 'users' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-           {/* User List */}
-           <div className="lg:col-span-2 space-y-4">
-              {users.map(user => (
-                <GlassCard key={user.id} className="flex items-start justify-between p-4 border-slate-200 group">
-                   <div className="flex items-center gap-4">
-                      <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full border border-slate-200" />
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900">{user.name}</h4>
-                        <p className="text-xs font-medium text-slate-500">{user.role}</p>
-                        <div className="flex gap-1 flex-wrap mt-2">
-                          {user.permissions.map(p => (
-                            <span key={p} className="px-2 py-0.5 bg-slate-100 text-[10px] rounded border border-slate-200 text-slate-600">
-                              {p}
-                            </span>
-                          ))}
-                        </div>
-                        {user.organization && (
-                          <div className="mt-2">
-                            <span className="px-2 py-0.5 bg-blue-100 text-[10px] rounded border border-blue-200 text-blue-700 flex items-center gap-1 w-fit">
-                              <Building2 size={10} />
-                              {user.organization}
-                            </span>
-                          </div>
-                        )}
+          {/* User List */}
+          <div className="lg:col-span-2 space-y-4">
+            {users.map(user => (
+              <GlassCard key={user.id} className="flex items-start justify-between p-4 border-slate-200 group">
+                <div className="flex items-center gap-4">
+                  <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full border border-slate-200" />
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">{user.name}</h4>
+                    <p className="text-xs font-medium text-slate-500">{user.role}</p>
+                    <div className="flex gap-1 flex-wrap mt-2">
+                      {user.permissions.map(p => (
+                        <span key={p} className="px-2 py-0.5 bg-slate-100 text-[10px] rounded border border-slate-200 text-slate-600">
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+                    {user.organization && (
+                      <div className="mt-2">
+                        <span className="px-2 py-0.5 bg-blue-100 text-[10px] rounded border border-blue-200 text-blue-700 flex items-center gap-1 w-fit">
+                          <Building2 size={10} />
+                          {user.organization}
+                        </span>
                       </div>
-                   </div>
-                   <button 
-                     onClick={() => handleEditClick(user)}
-                     className="text-xs text-slate-400 group-hover:text-blue-600 font-bold hover:underline flex items-center gap-1 transition-colors"
-                   >
-                     <Edit size={12} /> Chỉnh sửa
-                   </button>
-                </GlassCard>
-              ))}
-           </div>
-
-           {/* Add User Form */}
-           <GlassCard className="p-6 border-slate-300 h-fit">
-              <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase flex items-center gap-2">
-                <UserPlus size={16} /> Tạo tài khoản mới
-              </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 mb-1">Tên hiển thị</label>
-                  <input 
-                    type="text" 
-                    value={newUser.name}
-                    onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-                    className="w-full bg-white border border-slate-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
-                    placeholder="Nguyễn Văn A"
-                  />
-                </div>
-                
-                <div>
-                   <label className="block text-[11px] font-bold text-slate-500 mb-1">Mật khẩu</label>
-                   <div className="relative">
-                     <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                     <input 
-                       type="text" 
-                       value={newUser.password}
-                       onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                       className="w-full bg-white border border-slate-200 rounded pl-9 pr-3 py-2 text-sm focus:border-blue-500 outline-none"
-                       placeholder="Nhập mật khẩu..."
-                     />
-                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 mb-1">Vai trò</label>
-                  <select 
-                     value={newUser.role}
-                     onChange={(e) => setNewUser({...newUser, role: e.target.value as any})}
-                     className="w-full bg-white border border-slate-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
-                  >
-                    <option value="User1">User1 (Kế toán)</option>
-                    <option value="User2">User2 (NV Nghiệp vụ)</option>
-                    <option value="PMB">PMB (Ban QLDA)</option>
-                    <option value="Admin">Admin (Quản trị)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 mb-1 flex items-center gap-1">
-                    <Building2 size={12} /> Organization
-                  </label>
-                  <select 
-                     value={newUser.organization || ''}
-                     onChange={(e) => setNewUser({...newUser, organization: e.target.value as any || undefined})}
-                     className="w-full bg-white border border-slate-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
-                  >
-                    <option value="">-- Chọn Organization --</option>
-                    <option value="Đông Anh">Đông Anh</option>
-                    <option value="Phúc Thịnh">Phúc Thịnh</option>
-                    <option value="Thiên Lộc">Thiên Lộc</option>
-                    <option value="Thư Lâm">Thư Lâm</option>
-                    <option value="Vĩnh Thanh">Vĩnh Thanh</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 mb-2">Phân quyền truy cập tab</label>
-                  <div className="space-y-2">
-                    {availablePermissions.map(perm => (
-                      <div 
-                        key={perm.id} 
-                        className="flex items-center gap-2 cursor-pointer"
-                        onClick={() => togglePermission(perm.id)}
-                      >
-                         {newUser.permissions?.includes(perm.id) 
-                            ? <CheckSquare size={16} className="text-blue-600" />
-                            : <Square size={16} className="text-slate-300" />
-                         }
-                         <span className="text-xs font-medium text-slate-700">{perm.label}</span>
-                      </div>
-                    ))}
+                    )}
                   </div>
                 </div>
-
-                <button 
-                  onClick={handleCreateUser}
-                  className="w-full bg-slate-900 text-white py-2.5 rounded-lg text-xs font-bold hover:bg-black transition-colors shadow-lg"
+                <button
+                  onClick={() => handleEditClick(user)}
+                  className="text-xs text-slate-400 group-hover:text-blue-600 font-bold hover:underline flex items-center gap-1 transition-colors"
                 >
-                  Tạo người dùng
+                  <Edit size={12} /> Chỉnh sửa
                 </button>
+              </GlassCard>
+            ))}
+          </div>
+
+          {/* Add User Form */}
+          <GlassCard className="p-6 border-slate-300 h-fit">
+            <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase flex items-center gap-2">
+              <UserPlus size={16} /> Tạo tài khoản mới
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1">Tên hiển thị</label>
+                <input
+                  type="text"
+                  value={newUser.name}
+                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                  className="w-full bg-white border border-slate-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
+                  placeholder="Nguyễn Văn A"
+                />
               </div>
-           </GlassCard>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1">Mật khẩu</label>
+                <div className="relative">
+                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded pl-9 pr-3 py-2 text-sm focus:border-blue-500 outline-none"
+                    placeholder="Nhập mật khẩu..."
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1">Vai trò</label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value as any })}
+                  className="w-full bg-white border border-slate-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
+                >
+                  <option value="User1">User1 (Kế toán)</option>
+                  <option value="User2">User2 (NV Nghiệp vụ)</option>
+                  <option value="PMB">PMB (Ban QLDA)</option>
+                  <option value="Admin">Admin (Quản trị)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1 flex items-center gap-1">
+                  <Building2 size={12} /> Organization
+                </label>
+                <select
+                  value={newUser.organization || ''}
+                  onChange={(e) => setNewUser({ ...newUser, organization: e.target.value as any || undefined })}
+                  className="w-full bg-white border border-slate-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
+                >
+                  <option value="">-- Chọn Organization --</option>
+                  <option value="Đông Anh">Đông Anh</option>
+                  <option value="Phúc Thịnh">Phúc Thịnh</option>
+                  <option value="Thiên Lộc">Thiên Lộc</option>
+                  <option value="Thư Lâm">Thư Lâm</option>
+                  <option value="Vĩnh Thanh">Vĩnh Thanh</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 mb-2">Phân quyền truy cập tab</label>
+                <div className="space-y-2">
+                  {availablePermissions.map(perm => (
+                    <div
+                      key={perm.id}
+                      className="flex items-center gap-2 cursor-pointer"
+                      onClick={() => togglePermission(perm.id)}
+                    >
+                      {newUser.permissions?.includes(perm.id)
+                        ? <CheckSquare size={16} className="text-blue-600" />
+                        : <Square size={16} className="text-slate-300" />
+                      }
+                      <span className="text-xs font-medium text-slate-700">{perm.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={handleCreateUser}
+                className="w-full bg-slate-900 text-white py-2.5 rounded-lg text-xs font-bold hover:bg-black transition-colors shadow-lg"
+              >
+                Tạo người dùng
+              </button>
+            </div>
+          </GlassCard>
         </div>
       )}
 
       {/* --- EDIT USER MODAL --- */}
       {editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in zoom-in duration-200">
-           <GlassCard className="w-[450px] bg-white p-6 shadow-2xl border-slate-300">
-              <div className="flex justify-between items-start mb-6 border-b border-slate-200 pb-4">
-                 <div>
-                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                      <Edit size={18} className="text-blue-600" />
-                      Cập nhật tài khoản
-                    </h3>
-                    <p className="text-xs font-semibold text-slate-500 mt-1">Chỉnh sửa thông tin & đổi mật khẩu</p>
-                 </div>
-                 <button onClick={() => setEditingUser(null)} className="text-slate-400 hover:text-slate-600">
-                    <X size={20} />
-                 </button>
+          <GlassCard className="w-[450px] bg-white p-6 shadow-2xl border-slate-300">
+            <div className="flex justify-between items-start mb-6 border-b border-slate-200 pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Edit size={18} className="text-blue-600" />
+                  Cập nhật tài khoản
+                </h3>
+                <p className="text-xs font-semibold text-slate-500 mt-1">Chỉnh sửa thông tin & đổi mật khẩu</p>
+              </div>
+              <button onClick={() => setEditingUser(null)} className="text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-2">Tên hiển thị</label>
+                <input
+                  type="text"
+                  value={editingUser.name}
+                  onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
               </div>
 
-              <div className="space-y-4">
-                 <div>
-                    <label className="block text-[11px] font-bold text-slate-600 uppercase mb-2">Tên hiển thị</label>
-                    <input 
-                      type="text"
-                      value={editingUser.name}
-                      onChange={(e) => setEditingUser({...editingUser, name: e.target.value})}
-                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                 </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-2">Vai trò</label>
+                <select
+                  value={editingUser.role}
+                  onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as any })}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="User1">User1 (Kế toán)</option>
+                  <option value="User2">User2 (NV Nghiệp vụ)</option>
+                  <option value="PMB">PMB (Ban QLDA)</option>
+                  <option value="Admin">Admin (Quản trị)</option>
+                </select>
+              </div>
 
-                 <div>
-                    <label className="block text-[11px] font-bold text-slate-600 uppercase mb-2">Vai trò</label>
-                    <select 
-                       value={editingUser.role}
-                       onChange={(e) => setEditingUser({...editingUser, role: e.target.value as any})}
-                       className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-2 flex items-center gap-1">
+                  <Building2 size={12} /> Organization
+                </label>
+                <select
+                  value={editingUser.organization || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, organization: e.target.value as any || undefined })}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">-- Chọn Organization --</option>
+                  <option value="Đông Anh">Đông Anh</option>
+                  <option value="Phúc Thịnh">Phúc Thịnh</option>
+                  <option value="Thiên Lộc">Thiên Lộc</option>
+                  <option value="Thư Lâm">Thư Lâm</option>
+                  <option value="Vĩnh Thanh">Vĩnh Thanh</option>
+                </select>
+              </div>
+
+              <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+                <label className="block text-[11px] font-bold text-amber-800 uppercase mb-2 flex items-center gap-2">
+                  <Key size={14} /> Đổi mật khẩu
+                </label>
+                <input
+                  type="text"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-2 bg-white border border-amber-300 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500 placeholder:text-slate-400"
+                  placeholder="Nhập mật khẩu mới (để trống nếu không đổi)"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-2">Phân quyền</label>
+                <div className="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  {availablePermissions.map(perm => (
+                    <div
+                      key={perm.id}
+                      className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded"
+                      onClick={() => togglePermission(perm.id, true)}
                     >
-                      <option value="User1">User1 (Kế toán)</option>
-                      <option value="User2">User2 (NV Nghiệp vụ)</option>
-                      <option value="PMB">PMB (Ban QLDA)</option>
-                      <option value="Admin">Admin (Quản trị)</option>
-                    </select>
-                 </div>
-
-                 <div>
-                    <label className="block text-[11px] font-bold text-slate-600 uppercase mb-2 flex items-center gap-1">
-                      <Building2 size={12} /> Organization
-                    </label>
-                    <select 
-                       value={editingUser.organization || ''}
-                       onChange={(e) => setEditingUser({...editingUser, organization: e.target.value as any || undefined})}
-                       className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="">-- Chọn Organization --</option>
-                      <option value="Đông Anh">Đông Anh</option>
-                      <option value="Phúc Thịnh">Phúc Thịnh</option>
-                      <option value="Thiên Lộc">Thiên Lộc</option>
-                      <option value="Thư Lâm">Thư Lâm</option>
-                      <option value="Vĩnh Thanh">Vĩnh Thanh</option>
-                    </select>
-                 </div>
-
-                 <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
-                    <label className="block text-[11px] font-bold text-amber-800 uppercase mb-2 flex items-center gap-2">
-                       <Key size={14} /> Đổi mật khẩu
-                    </label>
-                    <input 
-                       type="text"
-                       value={newPassword}
-                       onChange={(e) => setNewPassword(e.target.value)}
-                       className="w-full px-4 py-2 bg-white border border-amber-300 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500 placeholder:text-slate-400"
-                       placeholder="Nhập mật khẩu mới (để trống nếu không đổi)"
-                    />
-                 </div>
-
-                 <div>
-                    <label className="block text-[11px] font-bold text-slate-600 uppercase mb-2">Phân quyền</label>
-                    <div className="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                      {availablePermissions.map(perm => (
-                        <div 
-                          key={perm.id} 
-                          className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded"
-                          onClick={() => togglePermission(perm.id, true)}
-                        >
-                           {editingUser.permissions?.includes(perm.id) 
-                              ? <CheckSquare size={16} className="text-blue-600" />
-                              : <Square size={16} className="text-slate-300" />
-                           }
-                           <span className="text-xs font-medium text-slate-700">{perm.label}</span>
-                        </div>
-                      ))}
+                      {editingUser.permissions?.includes(perm.id)
+                        ? <CheckSquare size={16} className="text-blue-600" />
+                        : <Square size={16} className="text-slate-300" />
+                      }
+                      <span className="text-xs font-medium text-slate-700">{perm.label}</span>
                     </div>
-                 </div>
+                  ))}
+                </div>
               </div>
+            </div>
 
-              <div className="flex justify-end gap-3 mt-8">
-                 <button 
-                   onClick={() => setEditingUser(null)} 
-                   className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
-                 >
-                   Hủy bỏ
-                 </button>
-                 <button 
-                   onClick={handleSaveUserUpdate} 
-                   className="px-5 py-2 text-xs font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center gap-2"
-                 >
-                   <Save size={14} /> Lưu thay đổi
-                 </button>
-              </div>
-           </GlassCard>
+            <div className="flex justify-end gap-3 mt-8">
+              <button
+                onClick={() => setEditingUser(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleSaveUserUpdate}
+                className="px-5 py-2 text-xs font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center gap-2"
+              >
+                <Save size={14} /> Lưu thay đổi
+              </button>
+            </div>
+          </GlassCard>
         </div>
       )}
 
       {/* --- INTEREST SETTINGS TAB --- */}
       {activeSubTab === 'interest' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-           <div className="space-y-6">
-              <GlassCard className="border-slate-300 shadow-md p-8">
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-3">Lãi suất năm (%)</label>
-                  <div className="flex items-center gap-3">
-                    <input 
-                      type="text" 
-                      value={interestRateInput} 
-                      onChange={(e) => handleInterestRateChange(e.target.value)}
-                      onBlur={(e) => {
-                        const parsed = parseNumberFromComma(e.target.value);
-                        setInterestRateInput(formatNumberWithComma(parsed));
-                      }}
-                      placeholder="Nhập lãi suất (ví dụ: 6,5 hoặc 6.5)"
-                      className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-lg font-bold text-black focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600 shadow-inner transition-all"
-                    />
-                    <button 
-                      onClick={handleSaveInterest}
-                      className="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center gap-2"
-                    >
-                      <Save size={16} /> Lưu
-                    </button>
-                  </div>
-                  <p className="text-[11px] font-medium text-slate-600 mt-3 leading-relaxed">
-                    * Lưu ý: Việc thay đổi lãi suất sẽ được ghi lại trong lịch sử và Audit Log.
-                  </p>
-              </GlassCard>
-           </div>
-           
-           <div className="space-y-2">
-              <h3 className="text-sm font-bold text-slate-800 uppercase flex items-center gap-2">
-                 <History size={16}/> Lịch sử thay đổi lãi suất
-              </h3>
-              <GlassCard className="p-0 overflow-hidden border-slate-200">
-                 <table className="w-full text-sm text-left">
-                    <thead className="bg-slate-50 text-[10px] text-slate-500 uppercase font-bold">
-                       <tr>
-                          <th className="px-4 py-2">Thời gian</th>
-                          <th className="px-4 py-2 text-right">Cũ</th>
-                          <th className="px-4 py-2 text-right">Mới</th>
-                          <th className="px-4 py-2">Người sửa</th>
-                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                       {interestHistory.length > 0 ? (
-                         interestHistory.slice().reverse().map((log, idx) => (
-                           <tr key={idx} className="hover:bg-slate-50">
-                              <td className="px-4 py-2 text-xs font-mono text-slate-500">
-                                {new Date(log.timestamp).toLocaleString('vi-VN')}
-                              </td>
-                              <td className="px-4 py-2 text-right font-medium text-slate-400">{log.oldRate}%</td>
-                              <td className="px-4 py-2 text-right font-bold text-blue-700">{log.newRate}%</td>
-                              <td className="px-4 py-2 text-xs font-bold text-slate-700">{log.actor}</td>
-                           </tr>
-                         ))
-                       ) : (
-                         <tr><td colSpan={4} className="p-4 text-center text-xs text-slate-400 italic">Chưa có lịch sử thay đổi</td></tr>
-                       )}
-                    </tbody>
-                 </table>
-              </GlassCard>
-           </div>
+          <div className="space-y-6">
+            <GlassCard className="border-slate-300 shadow-md p-8">
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-3">Lãi suất năm (%)</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={interestRateInput}
+                  onChange={(e) => handleInterestRateChange(e.target.value)}
+                  onBlur={(e) => {
+                    const parsed = parseNumberFromComma(e.target.value);
+                    setInterestRateInput(formatNumberWithComma(parsed));
+                  }}
+                  placeholder="Nhập lãi suất (ví dụ: 6,5 hoặc 6.5)"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-lg font-bold text-black focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600 shadow-inner transition-all"
+                />
+                <button
+                  onClick={handleSaveInterest}
+                  className="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center gap-2"
+                >
+                  <Save size={16} /> Lưu
+                </button>
+              </div>
+              <p className="text-[11px] font-medium text-slate-600 mt-3 leading-relaxed">
+                * Lưu ý: Việc thay đổi lãi suất sẽ được ghi lại trong lịch sử và Audit Log.
+              </p>
+            </GlassCard>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold text-slate-800 uppercase flex items-center gap-2">
+              <History size={16} /> Lịch sử thay đổi lãi suất
+            </h3>
+            <GlassCard className="p-0 overflow-hidden border-slate-200">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-slate-50 text-[10px] text-slate-500 uppercase font-bold">
+                  <tr>
+                    <th className="px-4 py-2">Thời gian</th>
+                    <th className="px-4 py-2 text-right">Cũ</th>
+                    <th className="px-4 py-2 text-right">Mới</th>
+                    <th className="px-4 py-2">Người sửa</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {interestHistory.length > 0 ? (
+                    interestHistory.slice().reverse().map((log, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50">
+                        <td className="px-4 py-2 text-xs font-mono text-slate-500">
+                          {new Date(log.timestamp).toLocaleString('vi-VN')}
+                        </td>
+                        <td className="px-4 py-2 text-right font-medium text-slate-400">{log.oldRate}%</td>
+                        <td className="px-4 py-2 text-right font-bold text-blue-700">{log.newRate}%</td>
+                        <td className="px-4 py-2 text-xs font-bold text-slate-700">{log.actor}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr><td colSpan={4} className="p-4 text-center text-xs text-slate-400 italic">Chưa có lịch sử thay đổi</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </GlassCard>
+          </div>
         </div>
       )}
 
