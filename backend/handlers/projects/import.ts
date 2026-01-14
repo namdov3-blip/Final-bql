@@ -97,25 +97,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(400).json({ error: 'File Excel không có dữ liệu' });
             }
 
-            // Auto-detect column names
-            const firstRow = jsonData[0];
-            const columnKeys = Object.keys(firstRow);
-            const findColumn = (patterns: string[]): string | undefined => {
-                return columnKeys.find(key => patterns.some(p => key.toLowerCase().replace(/\s/g, '').includes(p.toLowerCase().replace(/\s/g, ''))));
+            // Auto-detect column names with robust matching
+            const normalize = (str: string) => {
+                return str.toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
+                    .replace(/[^a-z0-9]/g, ''); // Remove special chars/spaces
             };
 
-            const nameCol = findColumn(['tên', 'họ tên', 'name', 'ho ten', 'chủ hộ', 'chu ho']);
-            const amountCol = findColumn(['số tiền', 'so tien', 'amount', 'tiền', 'tien', 'tổng cộng', 'tong cong', 'phê duyệt', 'phe duyet']);
-            const cccdCol = findColumn(['cccd', 'cmnd', 'căn cước', 'can cuoc', 'định danh', 'dinh danh']);
-            const maHoCol = findColumn(['mã hộ', 'ma ho', 'mã hồ sơ', 'ma ho so', 'mã hs', 'ma hs']);
-            const qdCol = findColumn(['quyết định', 'quyet dinh', 'số qđ', 'so qd', 'số vb', 'so vb']);
-            const dateCol = findColumn(['ngày', 'ngay', 'date', 'thời gian', 'thoi gian']);
-            const projectCodeCol = findColumn(['mã dự án', 'ma du an', 'project code', 'mã da', 'ma da']);
+            const findColumn = (patterns: string[]): string | undefined => {
+                const normPatterns = patterns.map(p => normalize(p));
+                return columnKeys.find(key => {
+                    const normKey = normalize(key);
+                    return normPatterns.some(p => normKey.includes(p) || p.includes(normKey));
+                });
+            };
+
+            const nameCol = findColumn(['tên', 'họ tên', 'họ và tên', 'name', 'fullname', 'chủ hộ', 'người nhận', 'đối tượng']);
+            const amountCol = findColumn(['số tiền', 'giá trị', 'thành tiền', 'tiền đền bù', 'tổng cộng', 'phê duyệt', 'amount', 'total', 'value']);
+            const cccdCol = findColumn(['cccd', 'cmnd', 'số thẻ', 'định danh', 'nơi cấp', 'id card']);
+            const maHoCol = findColumn(['mã hộ', 'mã số', 'mã hồ sơ', 'hồ sơ số', 'mã hs', 'ref']);
+            const qdCol = findColumn(['quyết định', 'số qđ', 'văn bản', 'căn cứ', 'qd', 'số vb']);
+            const dateCol = findColumn(['ngày', 'thời gian', 'kỳ hạn', 'date', 'time', 'ngày lập']);
+            const projectCodeCol = findColumn(['mã dự án', 'dự án', 'mã da', 'project', 'pcode']);
 
             if (!nameCol || !amountCol) {
                 return res.status(400).json({
-                    error: 'File Excel phải có ít nhất cột "Tên" và "Số tiền"',
-                    detectedColumns: columnKeys
+                    error: `File Excel không có đủ dữ liệu. Cần cột "Tên" và "Số tiền".`,
+                    detectedColumns: columnKeys,
+                    suggestions: {
+                        name: nameCol ? 'OK' : 'Không tìm thấy (Nên đặt là: Họ và tên)',
+                        amount: amountCol ? 'OK' : 'Không tìm thấy (Nên đặt là: Số tiền)'
+                    }
                 });
             }
 

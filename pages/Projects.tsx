@@ -93,7 +93,14 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
           }
         } catch (err: any) {
           console.error('Parse file failed:', err);
-          alert('Lỗi đọc file: ' + (err.message || 'Không thể trích xuất dữ liệu từ file. Vui lòng kiểm tra định dạng file Excel.'));
+          let errMsg = err.message || 'Không thể trúng xuất dữ liệu';
+          if (err.detectedColumns && err.detectedColumns.length > 0) {
+            errMsg += `\n\nCác cột tìm thấy: ${err.detectedColumns.join(', ')}`;
+            if (err.suggestions) {
+              errMsg += `\n\n- Tên: ${err.suggestions.name}\n- Số tiền: ${err.suggestions.amount}`;
+            }
+          }
+          alert('Lỗi đọc file: ' + errMsg);
         } finally {
           setIsUploading(false);
           if (fileInputRef.current) fileInputRef.current.value = '';
