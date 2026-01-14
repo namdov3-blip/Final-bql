@@ -62,7 +62,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             projectName,
             location,
             interestStartDate,
-            transactions: directTransactions // [NEW] Support direct JSON
+            transactions: directTransactions,
+            previewOnly // [NEW] Flag to just return parsed data
         } = req.body;
 
         if (!fileData && (!directTransactions || directTransactions.length === 0)) {
@@ -76,14 +77,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // Case 1: Use direct JSON data (from simulation/preview)
             transactionsData = directTransactions.map((t: any) => ({
                 ...t,
-                date: new Date(t.date || t.decisionDate || new Date())
+                date: new Date(t.date || t.decisionDate || (t.household?.decisionDate) || new Date())
             }));
-            totalBudget = transactionsData.reduce((sum, t) => sum + (t.amount || t.compensation?.totalApproved || 0), 0);
+            totalBudget = transactionsData.reduce((sum, t) => {
+                const amount = t.amount || t.compensation?.totalApproved || 0;
+                return sum + amount;
+            }, 0);
         } else if (fileData) {
             // Case 2: Parse Excel file from base64 (Legacy/Real file)
-            const buffer = Buffer.from(fileData, 'base64');
+            const base64Data = fileData.includes('base64,') ? fileData.split('base64,')[1] : fileData;
+            const buffer = Buffer.from(base64Data, 'base64');
             const workbook = XLSX.read(buffer, { type: 'buffer' });
-            // ... (rest of parsing logic, but simplified to just fill transactionsData)
+
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
@@ -96,25 +101,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const firstRow = jsonData[0];
             const columnKeys = Object.keys(firstRow);
             const findColumn = (patterns: string[]): string | undefined => {
-                return columnKeys.find(key => patterns.some(p => key.toLowerCase().includes(p.toLowerCase())));
+                return columnKeys.find(key => patterns.some(p => key.toLowerCase().replace(/\s/g, '').includes(p.toLowerCase().replace(/\s/g, ''))));
             };
 
-            const nameCol = findColumn(['tên', 'họ tên', 'name', 'ho ten']);
-            const amountCol = findColumn(['số tiền', 'so tien', 'amount', 'tiền', 'tien']);
-            const cccdCol = findColumn(['cccd', 'cmnd', 'căn cước', 'can cuoc']);
-            const maHoCol = findColumn(['mã hộ', 'ma ho', 'mã hồ sơ', 'ma ho so']);
-            const qdCol = findColumn(['quyết định', 'quyet dinh', 'số qđ', 'so qd']);
-            const dateCol = findColumn(['ngày', 'ngay', 'date']);
-            const projectCodeCol = findColumn(['mã dự án', 'ma du an', 'project code']);
+            const nameCol = findColumn(['tên', 'họ tên', 'name', 'ho ten', 'chủ hộ', 'chu ho']);
+            const amountCol = findColumn(['số tiền', 'so tien', 'amount', 'tiền', 'tien', 'tổng cộng', 'tong cong', 'phê duyệt', 'phe duyet']);
+            const cccdCol = findColumn(['cccd', 'cmnd', 'căn cước', 'can cuoc', 'định danh', 'dinh danh']);
+            const maHoCol = findColumn(['mã hộ', 'ma ho', 'mã hồ sơ', 'ma ho so', 'mã hs', 'ma hs']);
+            const qdCol = findColumn(['quyết định', 'quyet dinh', 'số qđ', 'so qd', 'số vb', 'so vb']);
+            const dateCol = findColumn(['ngày', 'ngay', 'date', 'thời gian', 'thoi gian']);
+            const projectCodeCol = findColumn(['mã dự án', 'ma du an', 'project code', 'mã da', 'ma da']);
 
             if (!nameCol || !amountCol) {
-                return res.status(400).json({ error: 'File Excel phải có cột "Tên" và "Số tiền"' });
+                return res.status(400).json({
+                    error: 'File Excel phải có ít nhất cột "Tên" và "Số tiền"',
+                    detectedColumns: columnKeys
+                });
             }
 
             for (let i = 0; i < jsonData.length; i++) {
                 const row = jsonData[i];
                 const name = row[nameCol];
-                const amount = parseFloat(row[amountCol]) || 0;
+                const amountVal = row[amountCol];
+                const amount = typeof amountVal === 'number' ? amountVal : parseFloat(amountVal?.toString().replace(/[^0-9.-]+/g, "")) || 0;
 
                 if (!name || amount <= 0) continue;
 
@@ -123,7 +132,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     stt: i + 1,
                     name: name?.toString().trim(),
                     cccd: row[cccdCol!]?.toString() || '',
-                    maHo: row[maHoCol!]?.toString() || `HO-${Date.now()}-${i}`,
+                    maHo: row[maHoCol!]?.toString() || '',
                     qd: row[qdCol!]?.toString() || '',
                     date: parseExcelDate(row[dateCol!]),
                     projectCode: row[projectCodeCol!]?.toString() || projectCode || '',
@@ -137,70 +146,78 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         // Generate project code if not provided
-        const finalProjectCode = projectCode || `DA-${Date.now()}`;
+        const finalProjectCode = projectCode || transactionsData[0]?.projectCode || `DA-${Date.now()}`;
+        const finalProjectName = projectName || `Dự án ${finalProjectCode}`;
 
-        // Check duplicate project code
-        const existingProject = await (Project as any).findOne({ code: finalProjectCode });
+        // Prepare return data for preview
+        const previewResult = {
+            project: {
+                code: finalProjectCode,
+                name: finalProjectName,
+                location: location || '',
+                totalBudget,
+                interestStartDate: interestStartDate ? new Date(interestStartDate) : new Date(),
+                status: 'Active'
+            },
+            transactions: transactionsData.map((row, index) => ({
+                id: `TEMP-${index}`,
+                household: {
+                    id: row.maHo || `HO-${index}`,
+                    name: row.name,
+                    cccd: row.cccd,
+                    address: location || '',
+                    landOrigin: '',
+                    landArea: 0,
+                    decisionNumber: row.qd,
+                    decisionDate: row.date
+                },
+                compensation: {
+                    landAmount: 0,
+                    assetAmount: 0,
+                    houseAmount: 0,
+                    supportAmount: 0,
+                    totalApproved: row.amount
+                },
+                status: 'Chưa giải ngân'
+            }))
+        };
+
+        if (previewOnly) {
+            return res.status(200).json({
+                success: true,
+                data: previewResult
+            });
+        }
+
+        // --- ACTUAL DB OPERATIONS ---
+        // Check duplicate project code only for real import
+        const existingProject = await (Project as any).findOne({ code: finalProjectCode, organization: currentUser.organization });
         if (existingProject) {
-            return res.status(400).json({ error: `Mã dự án ${finalProjectCode} đã tồn tại` });
+            return res.status(400).json({ error: `Mã dự án ${finalProjectCode} đã tồn tại trong tổ chức của bạn` });
         }
 
         // Create project with organization
         const project = await (Project as any).create({
             code: finalProjectCode,
-            name: projectName || `Dự án ${finalProjectCode}`,
+            name: finalProjectName,
             location: location || '',
             totalBudget,
             interestStartDate: interestStartDate ? new Date(interestStartDate) : new Date(),
             uploadDate: new Date(),
             startDate: new Date(),
             status: 'Active',
-            organization: currentUser.organization, // Set from current user
+            organization: currentUser.organization,
             uploadedBy: currentUser._id,
             updatedAt: new Date()
         });
 
         // Create transactions
         const transactions = await (Transaction as any).insertMany(
-            transactionsData.map(row => {
-                // [NEW] Support for Pre-structured data (Direct JSON from Frontend)
-                if (row.household && row.compensation) {
-                    return {
-                        projectId: project._id,
-                        household: row.household,
-                        compensation: row.compensation,
-                        status: row.status || 'Chưa giải ngân',
-                        updatedAt: new Date(),
-                        history: [{
-                            timestamp: new Date(),
-                            action: 'Import từ Excel (Preview)',
-                            details: `Nhập hồ sơ từ dữ liệu xem trước`,
-                            actor: payload.name
-                        }]
-                    };
-                }
-
-                // [Legacy] Support for Flat Excel rows
+            previewResult.transactions.map(t => {
+                const { id, ...txData } = t as any; // Remove temp id
                 return {
+                    ...txData,
                     projectId: project._id,
-                    household: {
-                        id: row.maHo,
-                        name: row.name,
-                        cccd: row.cccd,
-                        address: '',
-                        landOrigin: '',
-                        landArea: 0,
-                        decisionNumber: row.qd,
-                        decisionDate: row.date
-                    },
-                    compensation: {
-                        landAmount: 0,
-                        assetAmount: 0,
-                        houseAmount: 0,
-                        supportAmount: 0,
-                        totalApproved: row.amount
-                    },
-                    status: 'Chưa giải ngân',
                     updatedAt: new Date(),
                     history: [{
                         timestamp: new Date(),
@@ -224,7 +241,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             note: `Tiền chưa giải ngân dự án ${finalProjectCode}`,
             createdBy: payload.name,
             runningBalance: currentBalance + totalBudget,
-            organization: currentUser.organization, // Set from current user
+            organization: currentUser.organization,
             projectId: project._id,
             updatedAt: new Date()
         });

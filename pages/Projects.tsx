@@ -1,5 +1,5 @@
-
 import React, { useRef, useState } from 'react';
+import api from '../services/api';
 import { GlassCard } from '../components/GlassCard';
 import { formatDate, formatCurrency, calculateInterest } from '../utils/helpers';
 import { Plus, FolderKanban, Coins, Loader2, X, Check, FileSpreadsheet, Edit2, Eye, Calendar, Save, Tag, Type, Trash2 } from 'lucide-react';
@@ -65,88 +65,45 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
     if (file) {
       setIsUploading(true);
 
-      // SIMULATION: Parsing the specific Excel/OCR content provided
-      setTimeout(() => {
-        const newProjectId = `p-${Date.now()}`;
-        const todayStr = new Date().toISOString();
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target?.result as string;
+        try {
+          // Call API to parse file for preview
+          const res = await api.projects.import({
+            fileData: base64,
+            previewOnly: true
+          });
 
-        // Data exactly matching the provided OCR text
-        const realData = [
-          { stt: 1, name: "Vũ Văn Giản", cccd: "342432423423", maHo: "8045678-123QD-3423", qd: "123/QĐ-UBND", date: "01/12/2025", projectCode: "8045678", amount: 531695000 },
-          { stt: 2, name: "Hoàng Công Dũng", cccd: "342432423423", maHo: "8045678-123QD-3423", qd: "123/QĐ-UBND", date: "02/12/2025", projectCode: "8045678", amount: 310177100 },
-          { stt: 3, name: "Nguyễn Văn Hùng", cccd: "342432423423", maHo: "8045678-123QD-3424", qd: "123/QĐ-UBND", date: "03/12/2025", projectCode: "8045678", amount: 528815000 },
-          { stt: 4, name: "Nguyễn Đăng Hoan", cccd: "342432423423", maHo: "8045678-123QD-3425", qd: "123/QĐ-UBND", date: "04/12/2025", projectCode: "8045678", amount: 456048750 },
-          { stt: 5, name: "Đỗ Ngọc Khoa", cccd: "342432423423", maHo: "8045678-123QD-3426", qd: "123/QĐ-UBND", date: "05/12/2025", projectCode: "8045678", amount: 446078000 },
-          { stt: 6, name: "Đỗ Thị Mai", cccd: "342432423423", maHo: "8045678-123QD-3427", qd: "123/QĐ-UBND", date: "06/12/2025", projectCode: "8045678", amount: 290165300 },
-          { stt: 7, name: "Ngô Quang Ngọc", cccd: "342432423423", maHo: "8045678-123QD-3428", qd: "123/QĐ-UBND", date: "07/12/2025", projectCode: "8045678", amount: 543215000 },
-          { stt: 8, name: "Vũ Tuấn Khang", cccd: "342432423423", maHo: "8045678-123QD-3429", qd: "123/QĐ-UBND", date: "08/12/2025", projectCode: "8045678", amount: 530197500 },
-          { stt: 9, name: "Hoàng Chí Trung", cccd: "342432423423", maHo: "8045678-123QD-3430", qd: "123/QĐ-UBND", date: "09/12/2025", projectCode: "8045678", amount: 302242500 },
-          { stt: 10, name: "Nguyễn Đăng Toàn", cccd: "342432423423", maHo: "8045678-123QD-3431", qd: "123/QĐ-UBND", date: "10/12/2025", projectCode: "8045678", amount: 446848000 },
-          { stt: 11, name: "Hà Văn Sơn", cccd: "342432423423", maHo: "8045678-123QD-3432", qd: "123/QĐ-UBND", date: "11/12/2025", projectCode: "8045678", amount: 504007500 },
-          { stt: 12, name: "Phạm Đức Giang", cccd: "342432423423", maHo: "8045678-123QD-3433", qd: "123/QĐ-UBND", date: "12/12/2025", projectCode: "8045678", amount: 433290000 },
-          { stt: 13, name: "Nguyễn Văn Dũng (Loan)", cccd: "342432423423", maHo: "8045678-123QD-3434", qd: "123/QĐ-UBND", date: "13/12/2025", projectCode: "8045678", amount: 287581700 },
-          { stt: 14, name: "Hoàng Kim Quân", cccd: "342432423423", maHo: "8045678-123QD-3435", qd: "123/QĐ-UBND", date: "14/12/2025", projectCode: "8045678", amount: 309658400 },
-          { stt: 15, name: "Nguyễn Đăng Thiết", cccd: "342432423423", maHo: "8045678-123QD-3436", qd: "123/QĐ-UBND", date: "15/12/2025", projectCode: "8045678", amount: 513063100 },
-          { stt: 16, name: "Nguyễn Thị Hiền (Hàn)", cccd: "342432423423", maHo: "8045678-123QD-3437", qd: "123/QĐ-UBND", date: "16/12/2025", projectCode: "8045678", amount: 204784600 },
-          { stt: 17, name: "Nguyễn Đăng Thành", cccd: "342432423423", maHo: "8045678-123QD-3438", qd: "123/QĐ-UBND", date: "17/12/2025", projectCode: "8045678", amount: 330309100 },
-          { stt: 18, name: "Đinh Thị Lụa", cccd: "342432423423", maHo: "8045678-123QD-3439", qd: "123/QĐ-UBND", date: "18/12/2025", projectCode: "8045678", amount: 460908600 },
-          { stt: 19, name: "Lưu Thị Hiên", cccd: "342432423423", maHo: "8045678-123QD-3440", qd: "123/QĐ-UBND", date: "19/12/2025", projectCode: "8045678", amount: 309658400 },
-          { stt: 20, name: "Ngô Văn Thắng", cccd: "342432423423", maHo: "8045678-123QD-3441", qd: "123/QĐ-UBND", date: "20/12/2025", projectCode: "8045678", amount: 350098600 },
-          { stt: 21, name: "Nguyễn Thị Thúy", cccd: "342432423423", maHo: "8045678-123QD-3442", qd: "123/QĐ-UBND", date: "21/12/2025", projectCode: "8045678", amount: 520175000 },
-          { stt: 22, name: "Hoàng Thị Nhàn (Thỏa)", cccd: "342432423423", maHo: "8045678-123QD-3443", qd: "123/QĐ-UBND", date: "22/12/2025", projectCode: "8045678", amount: 230157900 },
-          { stt: 23, name: "Hoàng Văn Thanh", cccd: "342432423423", maHo: "8045678-123QD-3444", qd: "123/QĐ-UBND", date: "23/12/2025", projectCode: "8045678", amount: 430134000 },
-          { stt: 24, name: "Nguyễn Thị Thuý", cccd: "342432423423", maHo: "8045678-123QD-3445", qd: "123/QĐ-UBND", date: "24/12/2025", projectCode: "8045678", amount: 432441600 }
-        ];
-
-        const totalBudget = realData.reduce((sum, row) => sum + row.amount, 0);
-
-        // 2. Extract Project Info 
-        const newProject: Project = {
-          id: newProjectId,
-          code: 'DA-8045678', // Default extracted code
-          name: 'KĐT TM-ST TẠI CÁC XÃ TÀM XÁ, VĨNH NGỌC, XUÂN CANH',
-          location: 'Đông Anh, Hà Nội',
-          totalBudget: totalBudget,
-          startDate: todayStr,
-          uploadDate: todayStr,
-          interestStartDate: todayStr, // Init with today, editable
-          status: 'Active'
-        };
-
-        // 3. Convert Rows to Application Transaction Objects
-        // ALWAYS PENDING ON IMPORT
-        const newTransactions: Transaction[] = realData.map((row, index) => ({
-          id: `TX-${Date.now()}-${index}`,
-          projectId: newProjectId,
-          status: TransactionStatus.PENDING,
-          household: {
-            id: row.maHo,
-            name: row.name,
-            cccd: row.cccd,
-            address: 'Tàm Xá, Đông Anh',
-            landOrigin: 'Đất giao theo NĐ 64/CP', // Default for now
-            landArea: 0, // Not in preview
-            decisionNumber: row.qd,
-            decisionDate: new Date().toISOString()
-          },
-          compensation: {
-            landAmount: 0,
-            assetAmount: 0,
-            houseAmount: 0,
-            supportAmount: 0,
-            totalApproved: row.amount
+          if (res.data) {
+            setPreviewData({
+              project: res.data.project,
+              transactions: res.data.transactions,
+              rawRows: res.data.transactions.map((t: any, i: number) => ({
+                stt: i + 1,
+                name: t.household.name,
+                cccd: t.household.cccd,
+                maHo: t.household.id,
+                qd: t.household.decisionNumber,
+                date: formatDate(t.household.decisionDate),
+                projectCode: res.data.project.code,
+                amount: t.compensation.totalApproved
+              }))
+            });
           }
-        }));
-
-        setPreviewData({
-          project: newProject,
-          transactions: newTransactions,
-          rawRows: realData
-        });
-
+        } catch (err: any) {
+          console.error('Parse file failed:', err);
+          alert('Lỗi đọc file: ' + (err.message || 'Không thể trích xuất dữ liệu từ file. Vui lòng kiểm tra định dạng file Excel.'));
+        } finally {
+          setIsUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+      };
+      reader.onerror = () => {
+        alert('Lỗi đọc file từ đĩa');
         setIsUploading(false);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }, 1000);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
