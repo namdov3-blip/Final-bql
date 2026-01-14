@@ -371,6 +371,16 @@ const App: React.FC = () => {
             const res = await api.users.list();
             setUsers(res.data);
           }}
+          onDeleteUser={async (userId) => {
+            try {
+              await api.users.delete(userId);
+              const res = await api.users.list();
+              setUsers(res.data);
+            } catch (err: any) {
+              console.error('Delete user failed:', err);
+              alert('Lỗi khi xóa người dùng: ' + (err.message || 'Unknown error'));
+            }
+          }}
           interestRate={interestRate}
           onUpdateInterestRate={async (rate) => {
             await api.settings.updateInterestRate(rate, currentUser?.name || 'Unknown');

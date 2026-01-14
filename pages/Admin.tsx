@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { GlassCard } from '../components/GlassCard';
 import { AuditLogItem, User, InterestHistoryLog } from '../types';
-import { Shield, UserPlus, FileClock, History, Save, CheckSquare, Square, Lock, Key, Edit, X, Download, Building2 } from 'lucide-react';
+import { Shield, UserPlus, FileClock, History, Save, CheckSquare, Square, Lock, Key, Edit, X, Download, Building2, Trash2 } from 'lucide-react';
 import { formatCurrency, exportAuditLogsToExcel, formatNumberWithComma, parseNumberFromComma } from '../utils/helpers';
 
 interface AdminProps {
@@ -10,6 +10,7 @@ interface AdminProps {
   users: User[];
   onAddUser: (user: User) => void;
   onUpdateUser: (user: User) => void;
+  onDeleteUser: (userId: string) => void;
   interestRate: number;
   onUpdateInterestRate: (newRate: number) => void;
   bankInterestRate: number;
@@ -25,6 +26,7 @@ export const Admin: React.FC<AdminProps> = ({
   users,
   onAddUser,
   onUpdateUser,
+  onDeleteUser,
   interestRate,
   onUpdateInterestRate,
   bankInterestRate,
@@ -297,38 +299,86 @@ export const Admin: React.FC<AdminProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* User List */}
           <div className="lg:col-span-2 space-y-4">
-            {users.map(user => (
-              <GlassCard key={user.id} className="flex items-start justify-between p-4 border-slate-200 group">
-                <div className="flex items-center gap-4">
-                  <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full border border-slate-200" />
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900">{user.name}</h4>
-                    <p className="text-xs font-medium text-slate-500">{user.role}</p>
-                    <div className="flex gap-1 flex-wrap mt-2">
-                      {user.permissions.map(p => (
-                        <span key={p} className="px-2 py-0.5 bg-slate-100 text-[10px] rounded border border-slate-200 text-slate-600">
-                          {p}
-                        </span>
-                      ))}
-                    </div>
-                    {user.organization && (
-                      <div className="mt-2">
-                        <span className="px-2 py-0.5 bg-blue-100 text-[10px] rounded border border-blue-200 text-blue-700 flex items-center gap-1 w-fit">
-                          <Building2 size={10} />
-                          {user.organization}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleEditClick(user)}
-                  className="text-xs text-slate-400 group-hover:text-blue-600 font-bold hover:underline flex items-center gap-1 transition-colors"
-                >
-                  <Edit size={12} /> Chỉnh sửa
-                </button>
-              </GlassCard>
-            ))}
+            <GlassCard className="p-0 overflow-hidden border-slate-300 shadow-sm">
+              <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-slate-100 text-[10px] text-slate-600 uppercase font-bold sticky top-0 z-10">
+                    <tr>
+                      <th className="px-6 py-3 border-b border-slate-200">Người dùng</th>
+                      <th className="px-6 py-3 border-b border-slate-200">Vai trò</th>
+                      <th className="px-6 py-3 border-b border-slate-200">Organization</th>
+                      <th className="px-6 py-3 border-b border-slate-200">Phân quyền</th>
+                      <th className="px-6 py-3 border-b border-slate-200 text-center">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {users.map((user) => (
+                      <tr key={user.id} className="hover:bg-blue-50/50 transition-colors group">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={user.avatar}
+                              alt={user.name}
+                              className="w-10 h-10 rounded-full border border-slate-200 shadow-sm"
+                            />
+                            <span className="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
+                              {user.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-1 rounded">
+                            {user.role}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {user.organization ? (
+                            <div className="flex items-center gap-1.5 text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100 w-fit">
+                              <Building2 size={12} className="opacity-70" />
+                              <span className="text-[11px] font-bold uppercase tracking-tight">{user.organization}</span>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-slate-400 italic">N/A</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-1.5 flex-wrap">
+                            {user.permissions.map((p) => (
+                              <span
+                                key={p}
+                                className="px-2 py-0.5 bg-white text-[10px] font-bold rounded border border-slate-200 text-slate-500 shadow-xs"
+                              >
+                                {p}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleEditClick(user)}
+                              className="inline-flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-all"
+                            >
+                              <Edit size={14} /> <span>Sửa</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Bạn có chắc chắn muốn xóa tài khoản "${user.name}"?`)) {
+                                  onDeleteUser(user.id);
+                                }
+                              }}
+                              className="inline-flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-all"
+                            >
+                              <Trash2 size={14} /> <span>Xóa</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </GlassCard>
           </div>
 
           {/* Add User Form */}
