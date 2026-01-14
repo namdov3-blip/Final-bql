@@ -1,7 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import connectDB from '../../../lib/mongodb';
-import { Transaction, Project, BankTransaction, Settings, User } from '../../../lib/models';
-import { authMiddleware } from '../../../lib/auth';
+import connectDB from '../../../../lib/mongodb';
+import { Transaction, Project, BankTransaction, Settings, User } from '../../../../lib/models';
+import { authMiddleware } from '../../../../lib/auth';
 
 // Calculate interest helper
 function calculateInterest(

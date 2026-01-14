@@ -1,7 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import connectDB from '../../../lib/mongodb';
-import { Transaction, Project, Settings } from '../../../lib/models';
-import { generateQRToken } from '../../../lib/auth';
+import connectDB from '../../../../lib/mongodb';
+import { Transaction, Project, Settings } from '../../../../lib/models';
+import { generateQRToken } from '../../../../lib/auth';
 import QRCode from 'qrcode';
 
 function formatCurrency(amount: number): string {
