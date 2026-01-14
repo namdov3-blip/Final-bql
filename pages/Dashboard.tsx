@@ -120,10 +120,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
     return acc + (totalForProject > 0 ? totalForProject : p.totalBudget);
   }, 0);
 
-  // Tổng tiền tài khoản trên Dashboard = Số dư hiện tại (đã bao gồm lãi tạm tính và các giao dịch nạp/rút thủ công)
-  // Link với "Số dư hiện tại" ở tab Số dư (BankBalance)
-  // Sử dụng bankAccount.currentBalance để bao gồm cả các giao dịch nạp/rút thủ công
-  const statsTotalAccountBalance = bankAccount.currentBalance;
+  // Dashboard total balance = Real balance + Pending Interest + Locked Interest
+  // This ensures the pool total matches the "Total Value" requirement.
+  const statsTotalAccountBalance = bankAccount.currentBalance + tempInterest + lockedInterest;
 
   const projectStats = useMemo(() => {
     return projects.map(project => {
@@ -262,7 +261,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           title="TỔNG TIỀN TÀI KHOẢN"
-          value={formatCurrency(statsTotalAccountBalance + statsTotalInterest)}
+          value={formatCurrency(statsTotalAccountBalance)}
           subValue="Đã bao gồm lãi tạm tính"
           icon={Wallet}
           colorClass="bg-blue-600 text-blue-600"
