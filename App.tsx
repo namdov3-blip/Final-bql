@@ -50,39 +50,6 @@ const App: React.FC = () => {
   const [interestRate, setInterestRate] = useState<number>(6.5);
   const [interestHistory, setInterestHistory] = useState<InterestHistoryLog[]>([]);
 
-  // Check auth token on mount
-  useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    console.log('[MOUNT] Start - Token present:', !!token);
-
-    if (token) {
-      console.log('[MOUNT] Verifying token through api.auth.me()...');
-      api.auth.me()
-        .then(async res => {
-          console.log('[MOUNT] Verify Result:', res);
-          if (res.data && res.data.id) {
-            console.log('[MOUNT] Valid user data received, setting user and loading data');
-            setCurrentUser(res.data);
-            await loadAllData(); // Await data before finishing mount loading
-          } else {
-            console.warn('[MOUNT] Auth data missing or invalid ID:', res);
-            handleLogout('Dữ liệu xác thực không hợp lệ (Thiếu ID)');
-          }
-        })
-        .catch((err) => {
-          console.error('[MOUNT] Auth verification error:', err);
-          handleLogout(`Lỗi kết nối xác thực: ${err.message}`);
-        })
-        .finally(() => {
-          console.log('[MOUNT] Finalizing loading state');
-          setLoading(false);
-        });
-    } else {
-      console.log('[MOUNT] No token found in localStorage');
-      setLoading(false);
-    }
-  }, [loadAllData]);
-
   // Load all data from API
   const loadAllData = useCallback(async (silent: boolean = false) => {
     if (!silent) setLoading(true);
@@ -121,6 +88,39 @@ const App: React.FC = () => {
       if (!silent) setLoading(false);
     }
   }, []);
+
+  // Check auth token on mount
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    console.log('[MOUNT] Start - Token present:', !!token);
+
+    if (token) {
+      console.log('[MOUNT] Verifying token through api.auth.me()...');
+      api.auth.me()
+        .then(async res => {
+          console.log('[MOUNT] Verify Result:', res);
+          if (res.data && res.data.id) {
+            console.log('[MOUNT] Valid user data received, setting user and loading data');
+            setCurrentUser(res.data);
+            await loadAllData(); // Await data before finishing mount loading
+          } else {
+            console.warn('[MOUNT] Auth data missing or invalid ID:', res);
+            handleLogout('Dữ liệu xác thực không hợp lệ (Thiếu ID)');
+          }
+        })
+        .catch((err) => {
+          console.error('[MOUNT] Auth verification error:', err);
+          handleLogout(`Lỗi kết nối xác thực: ${err.message}`);
+        })
+        .finally(() => {
+          console.log('[MOUNT] Finalizing loading state');
+          setLoading(false);
+        });
+    } else {
+      console.log('[MOUNT] No token found in localStorage');
+      setLoading(false);
+    }
+  }, [loadAllData]);
 
   // Background polling for real-time updates
   useDashboardPoll(() => loadAllData(true), !!currentUser);
