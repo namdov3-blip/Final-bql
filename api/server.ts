@@ -23,13 +23,26 @@ import auditLogs from './audit-logs';
 import eventsPoll from './events/poll';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    const { url } = req;
+    const { url, method } = req;
     if (!url) return res.status(400).json({ error: 'Invalid request' });
+
+    console.log(`[API] ${method} ${url}`);
 
     // Extract path without query parameters
     const path = url.split('?')[0];
 
     try {
+        // Health check
+        if (path === '/api/health') {
+            return res.status(200).json({
+                status: 'ok',
+                message: 'Consolidated API is working',
+                env: {
+                    hasMongo: !!process.env.MONGODB_URI,
+                    hasJWT: !!process.env.JWT_SECRET
+                }
+            });
+        }
         // Auth
         if (path === '/api/auth/login') return await authLogin(req, res);
         if (path === '/api/auth/me') return await authMe(req, res);
