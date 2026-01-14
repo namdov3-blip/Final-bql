@@ -15,10 +15,22 @@ function calculateInterest(
     endDate: Date
 ): number {
     if (!startDate) return 0;
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0); // Reset hours for consistency
-    const end = new Date(endDate);
-    end.setHours(0, 0, 0, 0); // Reset hours for consistency
+
+    // Use Vietnam Time (UTC+7) for consistent day counting
+    const getVNZeroHour = (dateInput: Date | string) => {
+        const d = new Date(dateInput);
+        // Offset by 7 hours for Vietnam, then reset UTC hours to 0
+        // A simple way to get the "Date" part in Vietnam TZ
+        const vnTime = new Date(d.getTime() + (7 * 60 * 60 * 1000));
+        const vnDate = vnTime.getUTCDate();
+        const vnMonth = vnTime.getUTCMonth();
+        const vnYear = vnTime.getUTCFullYear();
+        return new Date(Date.UTC(vnYear, vnMonth, vnDate, 0, 0, 0, 0));
+    };
+
+    const start = getVNZeroHour(startDate);
+    const end = getVNZeroHour(endDate);
+
     const days = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
     if (days <= 0) return 0;
     const dailyRate = annualRate / 100 / 365;
