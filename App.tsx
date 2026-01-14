@@ -82,7 +82,7 @@ const App: React.FC = () => {
       setAuditLogs(auditRes.data || []);
       setInterestRate(settingsRes.data?.interestRate || 6.5);
       setBankInterestRate(settingsRes.data?.bankInterestRate || 0.5);
-      setInterestHistory(settingsRes.data?.history || []);
+      setInterestHistory(settingsRes.data?.interestHistory || []);
     } catch (err: any) {
       console.error('Failed to load data:', err);
       setError('Không thể tải dữ liệu. Vui lòng thử lại.');
@@ -376,7 +376,7 @@ const App: React.FC = () => {
             await api.settings.updateInterestRate(rate, currentUser?.name || 'Unknown');
             const res = await api.settings.getInterestRate();
             setInterestRate(res.data.interestRate);
-            setInterestHistory(res.data.history || []);
+            setInterestHistory(res.data.interestHistory || []);
           }}
           bankInterestRate={bankInterestRate}
           onUpdateBankInterestRate={async (rate) => {

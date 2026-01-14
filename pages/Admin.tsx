@@ -592,31 +592,7 @@ export const Admin: React.FC<AdminProps> = ({
               </p>
             </GlassCard>
 
-            <GlassCard className="border-red-300 shadow-md p-8 bg-red-50/30">
-              <label className="block text-xs font-bold text-red-600 uppercase tracking-wide mb-3">⚠️ Khu vực nguy hiểm</label>
-              <p className="text-xs text-slate-600 mb-4">
-                Reset toàn bộ dữ liệu (dự án, giao dịch, lịch sử ngân hàng). Tài khoản và cài đặt sẽ được giữ lại.
-              </p>
-              <button
-                onClick={async () => {
-                  if (!confirm('⚠️ BẠN CHẮC CHẮN MUỐN XÓA TẤT CẢ DỮ LIỆU?\n\nHành động này sẽ:\n- Xóa tất cả dự án\n- Xóa tất cả giao dịch\n- Xóa toàn bộ lịch sử ngân hàng\n\nTài khoản và cài đặt sẽ được giữ lại.\n\nKhông thể hoàn tác!')) return;
 
-                  if (!confirm('⚠️ XÁC NHẬN LẦN CUỐI!\n\nBạn có chắc chắn 100% muốn reset dữ liệu không?')) return;
-
-                  try {
-                    const api = (await import('../services/api')).default;
-                    const result = await api.admin.resetData();
-                    alert(`✅ ${result.message}\n\nĐã xóa:\n- ${result.data.projectsDeleted} dự án\n- ${result.data.transactionsDeleted} giao dịch\n- ${result.data.bankTransactionsDeleted} giao dịch ngân hàng`);
-                    window.location.reload();
-                  } catch (err: any) {
-                    alert('❌ Lỗi: ' + err.message);
-                  }
-                }}
-                className="bg-red-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-red-700 shadow-lg shadow-red-200 transition-all flex items-center gap-2"
-              >
-                🗑️ Reset toàn bộ dữ liệu
-              </button>
-            </GlassCard>
           </div>
 
           <div className="space-y-2">
