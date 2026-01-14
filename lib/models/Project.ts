@@ -66,4 +66,5 @@ ProjectSchema.set('toObject', {
     }
 });
 
-export default mongoose.models.Project || mongoose.model<IProject>('Project', ProjectSchema);
+const Project = mongoose.models.Project || mongoose.model<IProject>('Project', ProjectSchema);
+export default Project as mongoose.Model<IProject>;

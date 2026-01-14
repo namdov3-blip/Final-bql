@@ -5,12 +5,14 @@ interface GlassCardProps {
   className?: string;
   onClick?: () => void;
   hoverEffect?: boolean;
+  style?: React.CSSProperties;
 }
 
-export const GlassCard: React.FC<GlassCardProps> = ({ children, className = '', onClick, hoverEffect = false }) => {
+export const GlassCard: React.FC<GlassCardProps> = ({ children, className = '', onClick, hoverEffect = false, style }) => {
   return (
-    <div 
+    <div
       onClick={onClick}
+      style={style}
       className={`
         bg-white 
         backdrop-blur-xl 

@@ -45,4 +45,5 @@ AuditLogSchema.set('toObject', {
     }
 });
 
-export default mongoose.models.AuditLog || mongoose.model<IAuditLog>('AuditLog', AuditLogSchema);
+const AuditLog = mongoose.models.AuditLog || mongoose.model<IAuditLog>('AuditLog', AuditLogSchema);
+export default AuditLog as mongoose.Model<IAuditLog>;

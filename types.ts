@@ -13,6 +13,7 @@ export enum BankTransactionType {
 
 export interface BankTransaction {
   id: string;
+  _id?: string;
   type: BankTransactionType;
   amount: number; // Signed: positive for deposit/adjust-up, negative for withdraw/adjust-down
   date: string;
@@ -75,6 +76,7 @@ export interface CompensationDetails {
 
 export interface Transaction {
   id: string;
+  _id?: string;
   projectId: string;
   household: Household;
   compensation: CompensationDetails;
@@ -90,6 +92,7 @@ export interface Transaction {
 
 export interface Project {
   id: string;
+  _id?: string;
   code: string;
   name: string;
   location: string;

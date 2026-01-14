@@ -1,0 +1,8 @@
+pages/Dashboard.tsx(224,36): error TS2339: Property 'payload' does not exist on type 'TooltipProps<number, string>'.
+pages/Dashboard.tsx(224,45): error TS2339: Property 'label' does not exist on type 'TooltipProps<number, string>'.
+pages/Dashboard.tsx(322,81): error TS2322: Type '{ children: Element[]; className: string; style: { height: string; minHeight: string; }; }' is not assignable to type 'IntrinsicAttributes & GlassCardProps'.
+  Property 'style' does not exist on type 'IntrinsicAttributes & GlassCardProps'.
+pages/TransactionList.tsx(30,64): error TS2339: Property '_id' does not exist on type 'Project'.
+pages/TransactionList.tsx(61,64): error TS2339: Property '_id' does not exist on type 'Project'.
+pages/TransactionList.tsx(74,64): error TS2339: Property '_id' does not exist on type 'Project'.
+pages/TransactionList.tsx(93,64): error TS2339: Property '_id' does not exist on type 'Project'.

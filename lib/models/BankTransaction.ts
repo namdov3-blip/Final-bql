@@ -61,4 +61,5 @@ BankTransactionSchema.set('toObject', {
     }
 });
 
-export default mongoose.models.BankTransaction || mongoose.model<IBankTransaction>('BankTransaction', BankTransactionSchema);
+const BankTransaction = mongoose.models.BankTransaction || mongoose.model<IBankTransaction>('BankTransaction', BankTransactionSchema);
+export default BankTransaction as mongoose.Model<IBankTransaction>;

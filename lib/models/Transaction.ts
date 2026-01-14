@@ -116,4 +116,5 @@ TransactionSchema.set('toObject', {
     }
 });
 
-export default mongoose.models.Transaction || mongoose.model<ITransaction>('Transaction', TransactionSchema);
+const Transaction = mongoose.models.Transaction || mongoose.model<ITransaction>('Transaction', TransactionSchema);
+export default Transaction as mongoose.Model<ITransaction>;

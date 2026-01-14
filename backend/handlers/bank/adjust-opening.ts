@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import connectDB from '../../../lib/mongodb';
-import { BankTransaction, Settings, AuditLog } from '../../../lib/models';
+import { BankTransaction, Settings, AuditLog, User } from '../../../lib/models';
 import { authMiddleware } from '../../../lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         // Get user's organization
-        const currentUser = await (User as any).findById(payload.userId);
+        const currentUser = await User.findById(payload.userId);
         const org = currentUser?.organization;
         if (!org) {
             return res.status(400).json({ error: 'Người dùng không thuộc tổ chức nào' });

@@ -3,28 +3,28 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { GlassCard } from '../components/GlassCard';
 import { Transaction, TransactionStatus, Project, User, BankAccount } from '../types';
 import { formatCurrency, calculateInterest } from '../utils/helpers';
-import { 
-  ComposedChart, 
-  Line, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
+import {
+  ComposedChart,
+  Line,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
   ResponsiveContainer,
   TooltipProps
 } from 'recharts';
-import { 
-  Wallet, 
-  Layers, 
-  TrendingUp, 
-  Users, 
-  UserX, 
-  CheckCircle, 
-  AlertCircle, 
-  PiggyBank, 
-  Check, 
+import {
+  Wallet,
+  Layers,
+  TrendingUp,
+  Users,
+  UserX,
+  CheckCircle,
+  AlertCircle,
+  PiggyBank,
+  Check,
   ChevronRight
 } from 'lucide-react';
 
@@ -58,27 +58,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
   const statsTotalHouseholds = filteredTransactions.length;
 
   const statsDisbursedTrans = filteredTransactions.filter(t => t.status === TransactionStatus.DISBURSED);
-  
+
   const statsDisbursedAmount = statsDisbursedTrans.reduce((acc, t) => {
     const project = projects.find(p => p.id === t.projectId);
     const baseDate = t.effectiveInterestDate || project?.interestStartDate;
     let interest = 0;
     if (t.disbursementDate) {
-       interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
+      interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
     }
     const supplementary = t.supplementaryAmount || 0;
     return acc + t.compensation.totalApproved + interest + supplementary;
   }, 0);
-  
+
   const statsPendingTrans = filteredTransactions.filter(t => t.status !== TransactionStatus.DISBURSED);
   const statsPendingCount = statsPendingTrans.length;
 
   const statsPendingAmount = statsPendingTrans.reduce((acc, t) => {
-      const project = projects.find(p => p.id === t.projectId);
-      const baseDate = t.effectiveInterestDate || project?.interestStartDate;
-      const interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
-      const supplementary = t.supplementaryAmount || 0;
-      return acc + t.compensation.totalApproved + interest + supplementary;
+    const project = projects.find(p => p.id === t.projectId);
+    const baseDate = t.effectiveInterestDate || project?.interestStartDate;
+    const interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
+    const supplementary = t.supplementaryAmount || 0;
+    return acc + t.compensation.totalApproved + interest + supplementary;
   }, 0);
 
   // Tổng lãi phát sinh - Link với tab Giao dịch / tab Số dư
@@ -86,7 +86,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
   // Khi giải ngân, lãi của giao dịch đó sẽ được chuyển sang "đã chốt" và không còn trong tổng này
   let tempInterest = 0; // Lãi tạm tính (chưa giải ngân)
   let lockedInterest = 0; // Lãi đã chốt (đã giải ngân)
-  
+
   transactions.forEach(t => {
     const project = projects.find(p => p.id === t.projectId);
     const baseDate = t.effectiveInterestDate || project?.interestStartDate;
@@ -99,7 +99,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
       tempInterest += calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
     }
   });
-  
+
   const statsTotalInterest = tempInterest; // Chỉ trả về lãi tạm tính
   const statsLockedInterest = lockedInterest; // Lãi đã chốt (để hiển thị)
 
@@ -128,26 +128,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
   const projectStats = useMemo(() => {
     return projects.map(project => {
       const projectTrans = transactions.filter(t => t.projectId === project.id);
-      
+
       const pDisbursed = projectTrans
         .filter(t => t.status === TransactionStatus.DISBURSED)
         .reduce((acc, t) => {
-            const baseDate = t.effectiveInterestDate || project.interestStartDate;
-            let interest = 0;
-            if(t.disbursementDate) {
-              interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
-            }
-            const supplementary = t.supplementaryAmount || 0;
-            return acc + t.compensation.totalApproved + interest + supplementary;
+          const baseDate = t.effectiveInterestDate || project.interestStartDate;
+          let interest = 0;
+          if (t.disbursementDate) {
+            interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
+          }
+          const supplementary = t.supplementaryAmount || 0;
+          return acc + t.compensation.totalApproved + interest + supplementary;
         }, 0);
-        
+
       const pPending = projectTrans
         .filter(t => t.status !== TransactionStatus.DISBURSED)
         .reduce((acc, t) => {
-            const baseDate = t.effectiveInterestDate || project.interestStartDate;
-            const interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
-            const supplementary = t.supplementaryAmount || 0;
-            return acc + t.compensation.totalApproved + interest + supplementary;
+          const baseDate = t.effectiveInterestDate || project.interestStartDate;
+          const interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
+          const supplementary = t.supplementaryAmount || 0;
+          return acc + t.compensation.totalApproved + interest + supplementary;
         }, 0);
 
       const pInterest = projectTrans.reduce((acc, t) => {
@@ -159,13 +159,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
         }
         return acc;
       }, 0);
-      
+
       const completionRate = project.totalBudget > 0 ? (pDisbursed / project.totalBudget) * 100 : 0;
 
       return {
         ...project,
         disbursedAmount: pDisbursed,
-        pendingAmount: pPending, 
+        pendingAmount: pPending,
         interestAmount: pInterest,
         completionRate: parseFloat(completionRate.toFixed(1))
       };
@@ -178,7 +178,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
   }, [projectStats, selectedProjectIds]);
 
   const toggleProjectSelection = (id: string) => {
-    setSelectedProjectIds(prev => 
+    setSelectedProjectIds(prev =>
       prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]
     );
   };
@@ -205,7 +205,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
   }, [selectedProjectIds, chartData]);
 
   const KPICard = ({ title, value, subValue, icon: Icon, colorClass }: any) => (
-        <GlassCard hoverEffect className="relative flex flex-col justify-between h-full min-h-[120px] shadow-sm border-slate-200">
+    <GlassCard hoverEffect className="relative flex flex-col justify-between h-full min-h-[120px] shadow-sm border-slate-200">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-[11px] font-semibold text-slate-600 uppercase tracking-widest">{title}</h3>
         <div className={`p-2 rounded-lg ${colorClass} bg-opacity-10 border border-current opacity-80`}>
@@ -221,7 +221,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
     </GlassCard>
   );
 
-  const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
+  const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const project = projects.find(p => p.code === label);
       const title = project ? project.name : label;
@@ -237,7 +237,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
               </div>
               <span className="font-bold text-slate-900">
                 {(entry.unit === '%' || entry.name.includes('Tiến độ') || entry.name.includes('Hoàn thành'))
-                  ? `${entry.value}%` 
+                  ? `${entry.value}%`
                   : formatCurrency(entry.value as number)}
               </span>
             </div>
@@ -254,66 +254,66 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
     <div className="space-y-6 animate-fade-in pb-12">
       <div className="flex justify-between items-end pb-2">
         <div>
-           <h2 className="text-2xl font-medium text-black tracking-tight">Dashboard</h2>
-           <p className="text-sm font-medium text-slate-500 mt-1">Tổng quan tài chính & tiến độ</p>
+          <h2 className="text-2xl font-medium text-black tracking-tight">Dashboard</h2>
+          <p className="text-sm font-medium text-slate-500 mt-1">Tổng quan tài chính & tiến độ</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard 
-          title="TỔNG TIỀN TÀI KHOẢN" 
-          value={formatCurrency(statsTotalAccountBalance)} 
+        <KPICard
+          title="TỔNG TIỀN TÀI KHOẢN"
+          value={formatCurrency(statsTotalAccountBalance)}
           subValue="Đã bao gồm lãi tạm tính"
-          icon={Wallet} 
+          icon={Wallet}
           colorClass="bg-blue-600 text-blue-600"
         />
-        <KPICard 
-          title="TỔNG SỐ DỰ ÁN" 
-          value={statsTotalProjects} 
+        <KPICard
+          title="TỔNG SỐ DỰ ÁN"
+          value={statsTotalProjects}
           subValue={isDetailedView ? "Đang chọn" : "Đang quản lý"}
-          icon={Layers} 
+          icon={Layers}
           colorClass="bg-teal-600 text-teal-600"
         />
-        <KPICard 
-          title="TỔNG GIÁ TRỊ DỰ ÁN" 
-          value={formatCurrency(statsTotalProjectValue)} 
+        <KPICard
+          title="TỔNG GIÁ TRỊ DỰ ÁN"
+          value={formatCurrency(statsTotalProjectValue)}
           subValue="Vốn đầu tư"
-          icon={TrendingUp} 
+          icon={TrendingUp}
           colorClass="bg-purple-600 text-purple-600"
         />
-        <KPICard 
-          title="TỔNG SỐ HỘ DÂN" 
-          value={statsTotalHouseholds} 
+        <KPICard
+          title="TỔNG SỐ HỘ DÂN"
+          value={statsTotalHouseholds}
           subValue="Hồ sơ hệ thống"
-          icon={Users} 
+          icon={Users}
           colorClass="bg-sky-600 text-sky-600"
         />
-        <KPICard 
-          title="HỘ DÂN CHƯA NHẬN" 
-          value={statsPendingCount} 
+        <KPICard
+          title="HỘ DÂN CHƯA NHẬN"
+          value={statsPendingCount}
           subValue="Hồ sơ tồn"
-          icon={UserX} 
+          icon={UserX}
           colorClass="bg-orange-600 text-orange-600"
         />
-        <KPICard 
-          title="ĐÃ GIẢI NGÂN" 
-          value={formatCurrency(statsDisbursedAmount)} 
+        <KPICard
+          title="ĐÃ GIẢI NGÂN"
+          value={formatCurrency(statsDisbursedAmount)}
           subValue="Đã bao gồm lãi"
-          icon={CheckCircle} 
+          icon={CheckCircle}
           colorClass="bg-emerald-600 text-emerald-600"
         />
-        <KPICard 
-          title="CHƯA GIẢI NGÂN" 
-          value={formatCurrency(statsPendingAmount)} 
+        <KPICard
+          title="CHƯA GIẢI NGÂN"
+          value={formatCurrency(statsPendingAmount)}
           subValue="Đã bao gồm lãi tạm tính"
-          icon={AlertCircle} 
+          icon={AlertCircle}
           colorClass="bg-amber-600 text-amber-600"
         />
-        <KPICard 
-          title="LÃI PHÁT SINH" 
-          value={formatCurrency(statsTotalInterest)} 
+        <KPICard
+          title="LÃI PHÁT SINH"
+          value={formatCurrency(statsTotalInterest)}
           subValue={statsLockedInterest > 0 ? `Đã chốt: ${formatCurrency(statsLockedInterest)}` : `Lãi suất: ${interestRate}%`}
-          icon={PiggyBank} 
+          icon={PiggyBank}
           colorClass="bg-rose-600 text-rose-600"
         />
       </div>
@@ -324,13 +324,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
             <div>
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Tiến độ & Phân bổ vốn</h3>
               <p className="text-xs font-medium text-slate-500 mt-1">
-                {isDetailedView 
-                  ? `Chi tiết ${selectedProjectIds.length} dự án được chọn` 
+                {isDetailedView
+                  ? `Chi tiết ${selectedProjectIds.length} dự án được chọn`
                   : "Tổng quan toàn bộ hệ thống"}
               </p>
             </div>
             {isDetailedView && (
-              <button 
+              <button
                 onClick={() => setSelectedProjectIds([])}
                 className="text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 px-3 py-1.5 rounded-lg transition-colors border border-red-200"
               >
@@ -338,13 +338,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
               </button>
             )}
           </div>
-          <div 
+          <div
             ref={chartContainerRef}
-            className="flex-1 w-full" 
-            style={{ 
-              height: '450px', 
-              width: '100%', 
-              position: 'relative', 
+            className="flex-1 w-full"
+            style={{
+              height: '450px',
+              width: '100%',
+              position: 'relative',
               flexShrink: 0,
               minHeight: '400px',
               minWidth: '300px'
@@ -352,93 +352,93 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
           >
             {chartDimensions.width > 0 && chartDimensions.height > 0 ? (
               <ResponsiveContainer width={chartDimensions.width} height={chartDimensions.height}>
-              <ComposedChart
-                data={chartData}
-                margin={{ top: 10, right: 10, bottom: 0, left: 10 }}
-                barGap={2}
-              >
-                <CartesianGrid stroke="#cbd5e1" vertical={false} strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="code" 
-                  scale="band" 
-                  tick={{fontSize: 11, fontWeight: 500, fill: '#0f172a'}} 
-                  interval={0} 
-                  axisLine={false}
-                  tickLine={false}
-                  tickMargin={12}
-                />
-                <YAxis 
-                  yAxisId="left" 
-                  orientation="left" 
-                  tickFormatter={(value) => new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(value)} 
-                  tick={{fontSize: 11, fontWeight: 500, fill: '#475569'}}
-                  axisLine={false}
-                  tickLine={false}
-                  label={{ value: 'Vốn (VND)', angle: -90, position: 'insideLeft', style: { fill: '#64748b', fontSize: 10, fontWeight: 600 } }}
-                />
-                <YAxis 
-                  yAxisId="right" 
-                  orientation="right" 
-                  unit="%" 
-                  tick={{fontSize: 11, fontWeight: 500, fill: '#2563eb'}}
-                  axisLine={false}
-                  tickLine={false}
-                  label={{ value: '% Hoàn thành', angle: 90, position: 'insideRight', style: { fill: '#2563eb', fontSize: 10, fontWeight: 600 } }}
-                />
-                <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(0,0,0,0.04)'}} />
-                <Legend 
-                  iconType="circle" 
-                  wrapperStyle={{ fontSize: '11px', fontWeight: 600, paddingTop: '16px', color: '#334155' }}
-                />
-                
-                <Bar 
-                  yAxisId="left" 
-                  dataKey="totalBudget" 
-                  name="Tổng vốn" 
-                  fill="#3b82f6" 
-                  radius={[3, 3, 0, 0]} 
-                  barSize={isDetailedView ? undefined : 24}
-                />
+                <ComposedChart
+                  data={chartData}
+                  margin={{ top: 10, right: 10, bottom: 0, left: 10 }}
+                  barGap={2}
+                >
+                  <CartesianGrid stroke="#cbd5e1" vertical={false} strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="code"
+                    scale="band"
+                    tick={{ fontSize: 11, fontWeight: 500, fill: '#0f172a' }}
+                    interval={0}
+                    axisLine={false}
+                    tickLine={false}
+                    tickMargin={12}
+                  />
+                  <YAxis
+                    yAxisId="left"
+                    orientation="left"
+                    tickFormatter={(value) => new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(value)}
+                    tick={{ fontSize: 11, fontWeight: 500, fill: '#475569' }}
+                    axisLine={false}
+                    tickLine={false}
+                    label={{ value: 'Vốn (VND)', angle: -90, position: 'insideLeft', style: { fill: '#64748b', fontSize: 10, fontWeight: 600 } }}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    unit="%"
+                    tick={{ fontSize: 11, fontWeight: 500, fill: '#2563eb' }}
+                    axisLine={false}
+                    tickLine={false}
+                    label={{ value: '% Hoàn thành', angle: 90, position: 'insideRight', style: { fill: '#2563eb', fontSize: 10, fontWeight: 600 } }}
+                  />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
+                  <Legend
+                    iconType="circle"
+                    wrapperStyle={{ fontSize: '11px', fontWeight: 600, paddingTop: '16px', color: '#334155' }}
+                  />
 
-                {isDetailedView && (
-                  <>
-                    <Bar 
-                      yAxisId="left" 
-                      dataKey="disbursedAmount" 
-                      name="Đã giải ngân" 
-                      fill="#10b981" 
-                      radius={[3, 3, 0, 0]} 
-                    />
-                    <Bar 
-                      yAxisId="left" 
-                      dataKey="pendingAmount" 
-                      name="Chưa giải ngân" 
-                      fill="#f59e0b" 
-                      radius={[3, 3, 0, 0]} 
-                    />
-                     <Bar 
-                      yAxisId="left" 
-                      dataKey="interestAmount" 
-                      name="Lãi phát sinh (Hold)" 
-                      fill="#f43f5e" 
-                      radius={[3, 3, 0, 0]} 
-                    />
-                  </>
-                )}
-                
-                <Line 
-                  yAxisId="right" 
-                  type="monotone" 
-                  dataKey="completionRate" 
-                  name="% Tỷ lệ hoàn thành" 
-                  unit="%"
-                  stroke="#2563eb" 
-                  strokeWidth={2.5} 
-                  dot={{r: 4, strokeWidth: 1.5, fill: '#fff', stroke: '#2563eb'}} 
-                  activeDot={{r: 6, strokeWidth: 0}} 
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
+                  <Bar
+                    yAxisId="left"
+                    dataKey="totalBudget"
+                    name="Tổng vốn"
+                    fill="#3b82f6"
+                    radius={[3, 3, 0, 0]}
+                    barSize={isDetailedView ? undefined : 24}
+                  />
+
+                  {isDetailedView && (
+                    <>
+                      <Bar
+                        yAxisId="left"
+                        dataKey="disbursedAmount"
+                        name="Đã giải ngân"
+                        fill="#10b981"
+                        radius={[3, 3, 0, 0]}
+                      />
+                      <Bar
+                        yAxisId="left"
+                        dataKey="pendingAmount"
+                        name="Chưa giải ngân"
+                        fill="#f59e0b"
+                        radius={[3, 3, 0, 0]}
+                      />
+                      <Bar
+                        yAxisId="left"
+                        dataKey="interestAmount"
+                        name="Lãi phát sinh (Hold)"
+                        fill="#f43f5e"
+                        radius={[3, 3, 0, 0]}
+                      />
+                    </>
+                  )}
+
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="completionRate"
+                    name="% Tỷ lệ hoàn thành"
+                    unit="%"
+                    stroke="#2563eb"
+                    strokeWidth={2.5}
+                    dot={{ r: 4, strokeWidth: 1.5, fill: '#fff', stroke: '#2563eb' }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <p className="text-sm text-slate-500">Đang tải biểu đồ...</p>
@@ -448,65 +448,65 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
         </GlassCard>
 
         <GlassCard className="flex flex-col overflow-hidden p-0 border-slate-200">
-           <div className="p-5 border-b border-slate-200 bg-white/50 flex justify-between items-center backdrop-blur-md">
-             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Dự án</h3>
-             <button 
-                onClick={() => setActiveTab('projects')}
-                className="text-[10px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-full"
-              >
-               Tất cả <ChevronRight size={12}/>
-             </button>
-           </div>
-           
-           <div className="overflow-y-auto flex-1 custom-scrollbar p-2">
-             <table className="w-full text-left border-collapse">
-               <thead className="text-[10px] text-slate-500 font-bold uppercase sticky top-0 bg-white/95 backdrop-blur-md z-10 shadow-sm border-b border-slate-200">
-                 <tr>
-                   <th className="p-3 w-8 text-center">#</th>
-                   <th className="p-3">Dự án</th>
-                   <th className="p-3 text-right">Giá trị dự án</th>
-                   <th className="p-3 w-14 text-center">%</th>
-                 </tr>
-               </thead>
-               <tbody className="text-sm divide-y divide-slate-200">
-                 {projectStats.map((project, index) => (
-                   <tr 
-                      key={project.id} 
-                      className={`
+          <div className="p-5 border-b border-slate-200 bg-white/50 flex justify-between items-center backdrop-blur-md">
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Dự án</h3>
+            <button
+              onClick={() => setActiveTab('projects')}
+              className="text-[10px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-full"
+            >
+              Tất cả <ChevronRight size={12} />
+            </button>
+          </div>
+
+          <div className="overflow-y-auto flex-1 custom-scrollbar p-2">
+            <table className="w-full text-left border-collapse">
+              <thead className="text-[10px] text-slate-500 font-bold uppercase sticky top-0 bg-white/95 backdrop-blur-md z-10 shadow-sm border-b border-slate-200">
+                <tr>
+                  <th className="p-3 w-8 text-center">#</th>
+                  <th className="p-3">Dự án</th>
+                  <th className="p-3 text-right">Giá trị dự án</th>
+                  <th className="p-3 w-14 text-center">%</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm divide-y divide-slate-200">
+                {projectStats.map((project, index) => (
+                  <tr
+                    key={project.id}
+                    className={`
                         group transition-all cursor-pointer rounded-lg
                         ${selectedProjectIds.includes(project.id) ? 'bg-blue-50' : 'hover:bg-slate-50'}
                       `}
-                      onClick={() => toggleProjectSelection(project.id)}
-                   >
-                     <td className="p-3 text-center">
-                       <div className={`
+                    onClick={() => toggleProjectSelection(project.id)}
+                  >
+                    <td className="p-3 text-center">
+                      <div className={`
                          w-4 h-4 rounded border flex items-center justify-center transition-all mx-auto
                          ${selectedProjectIds.includes(project.id) ? 'bg-blue-600 border-blue-600' : 'border-slate-200 bg-white group-hover:border-blue-400'}
                        `}>
-                         {selectedProjectIds.includes(project.id) && <Check size={10} className="text-white" strokeWidth={3} />}
-                       </div>
-                     </td>
-                     <td className="p-3">
-                       <p className={`font-semibold text-[13px] text-black truncate max-w-[120px] ${selectedProjectIds.includes(project.id) ? 'text-blue-800' : ''}`} title={project.name}>{project.name}</p>
-                       <p className="text-[10px] font-medium text-slate-500 truncate">{project.code}</p>
-                     </td>
-                     <td className="p-3 text-right font-medium text-[12px] text-black">
-                       {formatCurrency(project.totalBudget)}
-                     </td>
-                     <td className="p-3 text-center">
-                       <span className={`text-[11px] font-bold ${project.completionRate === 100 ? 'text-emerald-600' : 'text-slate-600'}`}>
-                         {project.completionRate}%
-                       </span>
-                     </td>
-                   </tr>
-                 ))}
-               </tbody>
-             </table>
-           </div>
-           
-           <div className="p-3 bg-white/80 border-t border-slate-200 text-[10px] font-medium text-slate-600 text-center backdrop-blur-sm">
-             Đã chọn <span className="font-bold text-blue-700">{selectedProjectIds.length}</span> dự án
-           </div>
+                        {selectedProjectIds.includes(project.id) && <Check size={10} className="text-white" strokeWidth={3} />}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <p className={`font-semibold text-[13px] text-black truncate max-w-[120px] ${selectedProjectIds.includes(project.id) ? 'text-blue-800' : ''}`} title={project.name}>{project.name}</p>
+                      <p className="text-[10px] font-medium text-slate-500 truncate">{project.code}</p>
+                    </td>
+                    <td className="p-3 text-right font-medium text-[12px] text-black">
+                      {formatCurrency(project.totalBudget)}
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`text-[11px] font-bold ${project.completionRate === 100 ? 'text-emerald-600' : 'text-slate-600'}`}>
+                        {project.completionRate}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="p-3 bg-white/80 border-t border-slate-200 text-[10px] font-medium text-slate-600 text-center backdrop-blur-sm">
+            Đã chọn <span className="font-bold text-blue-700">{selectedProjectIds.length}</span> dự án
+          </div>
         </GlassCard>
       </div>
     </div>
