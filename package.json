@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Backend API for Transaction Management System",
   "main": "index.js",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:frontend\"",
     "dev:server": "tsx watch server.ts",
