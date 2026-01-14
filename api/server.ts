@@ -1,25 +1,28 @@
-const authLogin = require('../backend/handlers/auth/login').default;
-const authMe = require('../backend/handlers/auth/me').default;
-const projectsIndex = require('../backend/handlers/projects/index').default;
-const projectsImport = require('../backend/handlers/projects/import').default;
-const projectsId = require('../backend/handlers/projects/_id').default;
-const transactionsIndex = require('../backend/handlers/transactions/index').default;
-const transactionsToken = require('../backend/handlers/transactions/confirm/_token').default;
-const transactionsStatus = require('../backend/handlers/transactions/[id]/status').default;
-const transactionsRefund = require('../backend/handlers/transactions/[id]/refund').default;
-const transactionsQR = require('../backend/handlers/transactions/[id]/qr').default;
-const transactionsId = require('../backend/handlers/transactions/_id').default;
-const bankBalance = require('../backend/handlers/bank/balance').default;
-const bankTransactions = require('../backend/handlers/bank/transactions').default;
-const bankAdjust = require('../backend/handlers/bank/adjust-opening').default;
-const bankInterest = require('../backend/handlers/bank/calculate-interest').default;
-const usersIndex = require('../backend/handlers/users/index').default;
-const usersId = require('../backend/handlers/users/_id').default;
-const settingsInterest = require('../backend/handlers/settings/interest-rate').default;
-const auditLogs = require('../backend/handlers/audit-logs').default;
-const eventsPoll = require('../backend/handlers/events/poll').default;
+import { VercelRequest, VercelResponse } from '@vercel/node';
 
-module.exports = async (req, res) => {
+// Import all handlers
+import authLogin from '../backend/handlers/auth/login';
+import authMe from '../backend/handlers/auth/me';
+import projectsIndex from '../backend/handlers/projects/index';
+import projectsImport from '../backend/handlers/projects/import';
+import projectsId from '../backend/handlers/projects/_id';
+import transactionsIndex from '../backend/handlers/transactions/index';
+import transactionsToken from '../backend/handlers/transactions/confirm/_token';
+import transactionsStatus from '../backend/handlers/transactions/update-status';
+import transactionsRefund from '../backend/handlers/transactions/refund';
+import transactionsQR from '../backend/handlers/transactions/generate-qr';
+import transactionsId from '../backend/handlers/transactions/_id';
+import bankBalance from '../backend/handlers/bank/balance';
+import bankTransactions from '../backend/handlers/bank/transactions';
+import bankAdjust from '../backend/handlers/bank/adjust-opening';
+import bankInterest from '../backend/handlers/bank/calculate-interest';
+import usersIndex from '../backend/handlers/users/index';
+import usersId from '../backend/handlers/users/_id';
+import settingsInterest from '../backend/handlers/settings/interest-rate';
+import auditLogs from '../backend/handlers/audit-logs';
+import eventsPoll from '../backend/handlers/events/poll';
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { url, method } = req;
     if (!url) return res.status(400).json({ error: 'Invalid request' });
 
@@ -33,7 +36,7 @@ module.exports = async (req, res) => {
         if (path === '/api/health') {
             return res.status(200).json({
                 status: 'ok',
-                message: 'Consolidated API JS is working',
+                message: 'Consolidated API TS is working',
                 env: {
                     hasMongo: !!process.env.MONGODB_URI,
                     hasJWT: !!process.env.JWT_SECRET
@@ -49,30 +52,36 @@ module.exports = async (req, res) => {
         if (path === '/api/projects') return await projectsIndex(req, res);
         if (path === '/api/projects/import') return await projectsImport(req, res);
         if (path.startsWith('/api/projects/')) {
-            req.query.id = path.split('/')[3];
+            const id = path.split('/')[3];
+            req.query.id = id;
             return await projectsId(req, res);
         }
 
         // Transactions
         if (path === '/api/transactions') return await transactionsIndex(req, res);
         if (path.startsWith('/api/transactions/confirm/')) {
-            req.query.token = path.split('/')[4];
+            const token = path.split('/')[4];
+            req.query.token = token;
             return await transactionsToken(req, res);
         }
         if (path.match(/\/api\/transactions\/[^/]+\/status$/)) {
-            req.query.id = path.split('/')[3];
+            const id = path.split('/')[3];
+            req.query.id = id;
             return await transactionsStatus(req, res);
         }
         if (path.match(/\/api\/transactions\/[^/]+\/refund$/)) {
-            req.query.id = path.split('/')[3];
+            const id = path.split('/')[3];
+            req.query.id = id;
             return await transactionsRefund(req, res);
         }
         if (path.match(/\/api\/transactions\/[^/]+\/qr$/)) {
-            req.query.id = path.split('/')[3];
+            const id = path.split('/')[3];
+            req.query.id = id;
             return await transactionsQR(req, res);
         }
         if (path.startsWith('/api/transactions/')) {
-            req.query.id = path.split('/')[3];
+            const id = path.split('/')[3];
+            req.query.id = id;
             return await transactionsId(req, res);
         }
 
@@ -85,7 +94,8 @@ module.exports = async (req, res) => {
         // Users
         if (path === '/api/users') return await usersIndex(req, res);
         if (path.startsWith('/api/users/')) {
-            req.query.id = path.split('/')[3];
+            const id = path.split('/')[3];
+            req.query.id = id;
             return await usersId(req, res);
         }
 
@@ -99,8 +109,8 @@ module.exports = async (req, res) => {
         if (path === '/api/events/poll') return await eventsPoll(req, res);
 
         return res.status(404).json({ error: 'Route not found: ' + path });
-    } catch (error) {
-        console.error('API Router Error:', error);
+    } catch (error: any) {
+        console.error('Consolidated API Router Error:', error);
         return res.status(500).json({ error: 'Internal Server Error', details: error.message });
     }
-};
+}
