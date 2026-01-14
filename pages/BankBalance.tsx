@@ -141,14 +141,6 @@ export const BankBalance: React.FC<BankBalanceProps> = ({
           )}
         </GlassCard>
 
-        <GlassCard className="relative overflow-hidden border-slate-300">
-          <h3 className="text-[11px] font-bold text-slate-600 uppercase tracking-widest mb-1">Số dư đối soát</h3>
-          <p className="text-2xl font-bold text-slate-900 tracking-tight">{formatCurrency(bankAccount.reconciledBalance)}</p>
-          <div className="flex items-center gap-1.5 mt-2">
-            <AlertCircle size={10} className="text-slate-400" />
-            <p className="text-[10px] font-medium text-slate-500">Khớp với sao kê ngân hàng</p>
-          </div>
-        </GlassCard>
 
         <GlassCard className="relative overflow-hidden border-emerald-300 bg-emerald-50/30">
           <h3 className="text-[11px] font-bold text-emerald-700 uppercase tracking-widest mb-1">Lãi tạm tính</h3>
@@ -178,7 +170,7 @@ export const BankBalance: React.FC<BankBalanceProps> = ({
               <thead className="text-[10px] text-slate-500 font-bold uppercase sticky top-0 bg-slate-50/90 backdrop-blur-sm z-10 border-b border-slate-200">
                 <tr>
                   <th className="p-4">Ngày giao dịch</th>
-                  <th className="p-4">Loại</th>
+                  <th className="p-4 min-w-[150px]">Loại</th>
                   <th className="p-4 text-right">Số tiền</th>
                   <th className="p-4 text-right">Số dư thực tế</th>
                   <th className="p-4">Nội dung chi tiết</th>
@@ -190,7 +182,7 @@ export const BankBalance: React.FC<BankBalanceProps> = ({
                     <td className="p-4 text-xs font-bold text-slate-800">
                       {tx.note.includes('Tự động') ? '01/01/2026' : formatDate(tx.date)}
                     </td>
-                    <td className="p-4">
+                    <td className="p-4 min-w-[150px]">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${tx.type === BankTransactionType.DEPOSIT ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
                         {tx.type === BankTransactionType.DEPOSIT ? 'NẠP TIỀN' : 'RÚT TIỀN'}
                       </span>

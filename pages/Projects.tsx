@@ -217,7 +217,6 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
                 <th className="px-4 py-3.5 text-center w-12 border-r border-slate-200">STT</th>
                 <th className="px-4 py-3.5 border-r border-slate-200">Mã dự án</th>
                 <th className="px-4 py-3.5 border-r border-slate-200">Tên dự án</th>
-                <th className="px-4 py-3.5 border-r border-slate-200">Địa điểm</th>
                 <th className="px-4 py-3.5 text-right border-r border-slate-200">Tổng ngân sách</th>
                 <th className="px-4 py-3.5 text-center border-r border-slate-200">Ngày Upload</th>
                 <th className="px-4 py-3.5 text-center border-r border-slate-200">Ngày GN & Tính lãi</th>
@@ -270,7 +269,6 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
                     <td className="px-4 py-3 border-r border-slate-200">
                       <p className="text-slate-900 font-bold truncate max-w-[200px]" title={project.name}>{project.name}</p>
                     </td>
-                    <td className="px-4 py-3 text-slate-700 font-semibold text-xs border-r border-slate-200">{project.location}</td>
                     <td className="px-4 py-3 text-right font-bold text-slate-800 border-r border-slate-200">
                       {formatCurrency(actualTotalBudget)}
                       {actualTotalBudget !== project.totalBudget && (
@@ -464,17 +462,6 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
                 </div>
                 <div className="sm:col-span-1">
                   <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1 flex items-center gap-1">
-                    Địa điểm <Edit2 size={10} className="text-slate-400" />
-                  </label>
-                  <input
-                    placeholder="Nhập địa điểm..."
-                    value={previewData.project.location || ''}
-                    onChange={(e) => handleProjectInfoChange('location', e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded px-2 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all shadow-sm"
-                  />
-                </div>
-                <div className="sm:col-span-1">
-                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1 flex items-center gap-1">
                     Ngày GN & Tính lãi <Edit2 size={10} className="text-slate-400" />
                   </label>
                   <input
@@ -504,7 +491,6 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
                     <tr>
                       <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 text-center w-12">STT</th>
                       <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 min-w-[180px]">Họ và tên</th>
-                      <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 min-w-[120px]">CCCD</th>
                       <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 min-w-[140px]">Mã Hộ Dân</th>
                       <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 min-w-[120px]">Số quyết định</th>
                       <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 min-w-[100px]">Ngày QD</th>
@@ -518,7 +504,6 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
                       <tr key={idx} className="hover:bg-blue-50/30 transition-colors even:bg-slate-50/20">
                         <td className="p-3 border-r border-slate-200 text-center font-medium text-slate-500">{row.stt}</td>
                         <td className="p-3 border-r border-slate-200 font-bold text-slate-800">{row.name}</td>
-                        <td className="p-3 border-r border-slate-200 font-mono text-slate-600">{row.cccd || '-'}</td>
                         <td className="p-3 border-r border-slate-200 font-mono text-slate-600 text-[10px]">{row.maHo || '-'}</td>
                         <td className="p-3 border-r border-slate-200 text-slate-700">{row.qd || '-'}</td>
                         <td className="p-3 border-r border-slate-200 text-slate-700">{row.date || '-'}</td>

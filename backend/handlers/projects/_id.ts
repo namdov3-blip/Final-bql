@@ -123,7 +123,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     date: new Date(),
                     note: `Xóa dự án: ${project.code}. Thu hồi toàn bộ dòng hiện (Dự toán + Lãi/Phát sinh).`,
                     createdBy: payload.name,
-                    runningBalance: currentBalance - netImpact,
+                    runningBalance: currentBalance + (-netImpact),
                     organization: org,
                     projectId: project._id,
                     updatedAt: new Date()

@@ -195,7 +195,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         maHo: row[10]?.toString() || `HO-${i}`,
                         qd: row[5]?.toString().trim() || '',
                         date: parseExcelDate(row[6]),
-                        projectCode: projectCode || '',
+                        projectCode: row[8]?.toString().trim() || '',
                         projectName: projectName || '',
                         paymentType: row[9]?.toString() || '',
                         amount,
