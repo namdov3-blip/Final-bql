@@ -133,12 +133,7 @@ export const BankBalance: React.FC<BankBalanceProps> = ({
           </div>
           <h3 className="text-[11px] font-bold text-blue-700 uppercase tracking-widest mb-1">Số dư hiện tại</h3>
           <p className="text-2xl font-bold text-slate-900 tracking-tight">{formatCurrency(bankAccount.currentBalance)}</p>
-          {(pendingData.interest > 0 || pendingData.supplementary > 0) && (
-            <div className="flex items-center gap-1.5 mt-2">
-              <AlertCircle size={10} className="text-blue-500" />
-              <p className="text-[10px] font-medium text-blue-600">Đã bao gồm lãi tạm tính{pendingData.supplementary > 0 ? ' & tiền bổ sung' : ''}</p>
-            </div>
-          )}
+          <p className="text-[10px] font-medium text-blue-600 mt-2">Chưa tính lãi tạm tính</p>
         </GlassCard>
 
 
