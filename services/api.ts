@@ -99,7 +99,14 @@ export const transactionsAPI = {
         body: JSON.stringify({ actor })
     }),
 
-    getQR: (id: string) => fetchAPI<{ qrDataUrl: string; url: string }>(`/transactions/${id}/qr?format=json`)
+    getQR: (id: string) => fetchAPI<{ qrDataUrl: string; url: string }>(`/transactions/${id}/qr?format=json`),
+
+    getConfirmInfo: (token: string) => fetchAPI<{ data: any }>(`/transactions/confirm/${token}`),
+
+    confirm: (token: string, confirmedBy: string) => fetchAPI<{ data: any }>(`/transactions/confirm/${token}`, {
+        method: 'POST',
+        body: JSON.stringify({ confirmedBy })
+    })
 };
 
 // ============ BANK ============

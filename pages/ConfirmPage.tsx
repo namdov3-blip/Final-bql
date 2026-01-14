@@ -3,6 +3,7 @@ import { formatCurrency } from '../utils/helpers';
 import { CheckCircle, AlertCircle, Loader2, XCircle, User, FileText, DollarSign, Building2 } from 'lucide-react';
 
 import { Transaction, User as UserType } from '../types';
+import { api } from '../services/api';
 
 interface ConfirmPageProps {
     transactionId: string;
@@ -44,15 +45,9 @@ export const ConfirmPage: React.FC<ConfirmPageProps> = ({ transactionId, current
                 setLoading(true);
                 setError(null);
 
-                // Call the confirm API with GET to get transaction info
-                const response = await fetch(`/api/transactions/confirm/${transactionId}`);
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Không thể tải thông tin giao dịch');
-                }
-
-                setTxInfo(data.data);
+                // Use standardized API service
+                const response = await api.transactions.getConfirmInfo(transactionId);
+                setTxInfo(response.data);
             } catch (err: any) {
                 setError(err.message || 'Đã xảy ra lỗi');
             } finally {
@@ -75,18 +70,8 @@ export const ConfirmPage: React.FC<ConfirmPageProps> = ({ transactionId, current
             setConfirming(true);
             setError(null);
 
-            const response = await fetch(`/api/transactions/confirm/${transactionId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ confirmedBy: confirmedBy.trim() })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Xác nhận thất bại');
-            }
-
+            // Use standardized API service
+            await api.transactions.confirm(transactionId, confirmedBy.trim());
             setSuccess(true);
         } catch (err: any) {
             setError(err.message || 'Đã xảy ra lỗi');
