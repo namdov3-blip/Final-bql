@@ -36,6 +36,10 @@
         {
             "source": "/api/events/(.*)",
             "destination": "/api/events"
+        },
+        {
+            "source": "/((?!api/).*)",
+            "destination": "/index.html"
         }
     ]
 }
