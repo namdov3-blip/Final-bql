@@ -32,7 +32,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(404).json({ error: 'Không tìm thấy giao dịch' });
             }
 
-            return res.status(200).json({ success: true, data: transaction });
+            const tObj = transaction.toObject ? transaction.toObject({ virtuals: true }) : transaction;
+            const mapped = {
+                ...tObj,
+                id: (tObj.id || tObj._id || transaction._id || '').toString()
+            };
+
+            if (mapped.projectId && typeof mapped.projectId === 'object') {
+                mapped.projectId = (mapped.projectId.id || mapped.projectId._id || '').toString();
+            }
+
+            return res.status(200).json({ success: true, data: mapped });
         }
 
         // PUT - Update transaction
@@ -89,7 +99,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 details: `Cập nhật hồ sơ hộ ${transaction.household.name}`
             });
 
-            return res.status(200).json({ success: true, data: transaction });
+            const tObj = transaction.toObject ? transaction.toObject({ virtuals: true }) : transaction;
+            const mapped = {
+                ...tObj,
+                id: (tObj.id || tObj._id || transaction._id || '').toString()
+            };
+
+            if (mapped.projectId && typeof mapped.projectId === 'object') {
+                mapped.projectId = (mapped.projectId.id || mapped.projectId._id || '').toString();
+            }
+
+            return res.status(200).json({ success: true, data: mapped });
         }
 
         return res.status(405).json({ error: 'Method not allowed' });

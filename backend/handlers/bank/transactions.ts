@@ -65,6 +65,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(400).json({ error: 'Loại giao dịch và số tiền là bắt buộc' });
             }
 
+            // Robustly extract projectId if it's passed as an object (populated project)
+            let finalProjectId = projectId;
+            if (projectId && typeof projectId === 'object') {
+                finalProjectId = projectId._id || projectId.id;
+            }
+
             // Get current balance FOR THIS ORG
             const lastTx = await (BankTransaction as any).findOne(orgFilter).sort({ _id: -1 });
             const currentBalance = lastTx?.runningBalance || 0;
@@ -85,7 +91,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 createdBy: payload.name,
                 runningBalance: newBalance,
                 organization: currentUser.organization, // Set from current user
-                projectId: projectId || undefined,
+                projectId: finalProjectId || undefined,
                 updatedAt: new Date()
             });
 

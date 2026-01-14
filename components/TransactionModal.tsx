@@ -108,13 +108,18 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       const currentSupplementary = transaction.supplementaryAmount || 0;
       const newSupplementaryTotal = currentSupplementary + parsedAmount;
 
-      // Nạp/Điều chỉnh tiền bổ sung vào số dư tài khoản (có thể âm hoặc dương)
+      // Safely extract project ID if it's an object/populated
+      let finalProjectId = transaction.projectId;
+      if (finalProjectId && typeof finalProjectId === 'object') {
+        finalProjectId = (finalProjectId as any).id || (finalProjectId as any)._id || finalProjectId;
+      }
+
       handleAddBankTransaction(
         BankTransactionType.DEPOSIT,
         parsedAmount,
         `Bổ sung tiền cho hộ: ${transaction.household.name} - ${transaction.id}${supplementaryNote ? `. ${supplementaryNote}` : ''}`,
         now.toISOString(),
-        transaction.projectId
+        finalProjectId as string
       );
 
       const updated = {
