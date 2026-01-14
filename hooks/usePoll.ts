@@ -44,10 +44,16 @@ export const usePoll = (options: UsePollOptions = {}) => {
             setError(null);
 
             const since = lastPollRef.current || new Date(Date.now() - 60000).toISOString();
-            const response = await fetch(`/api/events/poll?since=${encodeURIComponent(since)}&types=${types}`);
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`/api/events/poll?since=${encodeURIComponent(since)}&types=${types}`, {
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }
+            });
 
             if (!response.ok) {
-                throw new Error('Poll failed');
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Poll failed');
             }
 
             const data = await response.json();
