@@ -22,9 +22,5 @@
             "src": "/(.*)",
             "dest": "/dist/$1"
         }
-    ],
-    "env": {
-        "MONGODB_URI": "@mongodb_uri",
-        "JWT_SECRET": "@jwt_secret"
-    }
+    ]
 }
