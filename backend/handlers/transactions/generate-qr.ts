@@ -75,9 +75,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const token = generateQRToken(id);
 
         // Get frontend URL dynamically from request
-        const protocol = req.headers['x-forwarded-proto'] || 'http';
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
         const host = req.headers.host;
-        const frontendUrl = process.env.FRONTEND_URL || `${protocol}://${host}`;
+
+        let frontendUrl = process.env.FRONTEND_URL;
+
+        // If FRONTEND_URL is missing OR points to localhost while we are on a real host, reconstruct it
+        if (!frontendUrl || (frontendUrl.includes('localhost') && host && !host.includes('localhost'))) {
+            frontendUrl = `${protocol}://${host}`;
+        }
+
         const confirmUrl = `${frontendUrl}/confirm/${token}`;
 
         // QR content should be JUST the URL for scanners to recognize it as a link
