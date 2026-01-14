@@ -58,12 +58,12 @@ const App: React.FC = () => {
     if (token) {
       console.log('[MOUNT] Verifying token through api.auth.me()...');
       api.auth.me()
-        .then(res => {
+        .then(async res => {
           console.log('[MOUNT] Verify Result:', res);
           if (res.data && res.data.id) {
             console.log('[MOUNT] Valid user data received, setting user and loading data');
             setCurrentUser(res.data);
-            loadAllData();
+            await loadAllData(); // Await data before finishing mount loading
           } else {
             console.warn('[MOUNT] Auth data missing or invalid ID:', res);
             handleLogout('Dữ liệu xác thực không hợp lệ (Thiếu ID)');
@@ -81,7 +81,7 @@ const App: React.FC = () => {
       console.log('[MOUNT] No token found in localStorage');
       setLoading(false);
     }
-  }, []);
+  }, [loadAllData]);
 
   // Load all data from API
   const loadAllData = useCallback(async (silent: boolean = false) => {
@@ -137,9 +137,9 @@ const App: React.FC = () => {
   }, [transactions, selectedTransaction]);
 
   // Handle login
-  const handleLogin = (user: User) => {
+  const handleLogin = async (user: User) => {
     setCurrentUser(user);
-    loadAllData();
+    await loadAllData();
   };
 
   // Handle logout
