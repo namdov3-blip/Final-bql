@@ -199,7 +199,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         projectName: projectName || '',
                         paymentType: row[9]?.toString() || '',
                         amount,
-                        stt: row[1]?.toString() || (i - 3).toString()
+                        stt: row[0]?.toString() || (i - 3).toString()
                     });
                     totalBudget += amount;
                 }
