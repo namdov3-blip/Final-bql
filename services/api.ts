@@ -118,7 +118,7 @@ export const bankAPI = {
         return fetchAPI<{ data: any[]; pagination: any }>(`/bank/transactions${query}`);
     },
 
-    addTransaction: (tx: { type: string; amount: number; note?: string; date?: string }) =>
+    addTransaction: (tx: { type: string; amount: number; note?: string; date?: string; projectId?: string }) =>
         fetchAPI<{ data: any }>('/bank/transactions', {
             method: 'POST',
             body: JSON.stringify(tx)

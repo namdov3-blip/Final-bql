@@ -19,7 +19,7 @@ interface TransactionModalProps {
   onUpdateTransaction: (transaction: Transaction) => void;
   currentUser: User;
   setAuditLogs: React.Dispatch<React.SetStateAction<AuditLogItem[]>>;
-  handleAddBankTransaction: (type: BankTransactionType, amount: number, note: string, date: string) => void;
+  handleAddBankTransaction: (type: BankTransactionType, amount: number, note: string, date: string, projectId?: string) => void;
 }
 
 export const TransactionModal: React.FC<TransactionModalProps> = ({
@@ -113,7 +113,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         BankTransactionType.DEPOSIT,
         parsedAmount,
         `Bổ sung tiền cho hộ: ${transaction.household.name} - ${transaction.id}${supplementaryNote ? `. ${supplementaryNote}` : ''}`,
-        now.toISOString()
+        now.toISOString(),
+        transaction.projectId
       );
 
       const updated = {

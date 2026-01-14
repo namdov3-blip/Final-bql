@@ -181,9 +181,9 @@ const App: React.FC = () => {
   };
 
   // Add bank transaction via API
-  const handleAddBankTransaction = useCallback(async (type: BankTransactionType, amount: number, note: string, date: string) => {
+  const handleAddBankTransaction = useCallback(async (type: BankTransactionType, amount: number, note: string, date: string, projectId?: string) => {
     try {
-      await api.bank.addTransaction({ type, amount, note, date });
+      await api.bank.addTransaction({ type, amount, note, date, projectId });
       // Reload bank data
       const [balanceRes, txRes] = await Promise.all([
         api.bank.getBalance(),

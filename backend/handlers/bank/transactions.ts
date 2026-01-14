@@ -59,7 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // POST - Create new bank transaction
         if (req.method === 'POST') {
-            const { type, amount, note, date } = req.body;
+            const { type, amount, note, date, projectId } = req.body;
 
             if (!type || amount === undefined) {
                 return res.status(400).json({ error: 'Loại giao dịch và số tiền là bắt buộc' });
@@ -85,6 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 createdBy: payload.name,
                 runningBalance: newBalance,
                 organization: currentUser.organization, // Set from current user
+                projectId: projectId || undefined,
                 updatedAt: new Date()
             });
 
