@@ -1,7 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import connectDB from '../../../../../lib/mongodb';
-import { Transaction, Project, BankTransaction, AuditLog, Settings } from '../../../../../lib/models';
-import { verifyQRToken } from '../../../../../lib/auth';
+import connectDB from '../../../../lib/mongodb';
+import { Transaction, Project, BankTransaction, AuditLog, Settings } from '../../../../lib/models';
+import { verifyQRToken } from '../../../../lib/auth';
 
 function formatCurrency(amount: number): string {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);

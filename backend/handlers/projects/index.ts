@@ -1,7 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import connectDB from '../../../../lib/mongodb';
-import { Project, AuditLog, User } from '../../../../lib/models';
-import { authMiddleware } from '../../../../lib/auth';
+import connectDB from '../../../lib/mongodb';
+import { Project, AuditLog, User } from '../../../lib/models';
+import { authMiddleware } from '../../../lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Enable CORS

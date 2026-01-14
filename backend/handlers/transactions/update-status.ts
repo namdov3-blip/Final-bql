@@ -1,7 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import connectDB from '../../../../lib/mongodb';
-import { Transaction, Project, BankTransaction, AuditLog, Settings } from '../../../../lib/models';
-import { authMiddleware } from '../../../../lib/auth';
+import connectDB from '../../../lib/mongodb';
+import { Transaction, Project, BankTransaction, AuditLog, Settings } from '../../../lib/models';
+import { authMiddleware } from '../../../lib/auth';
 
 // Helper functions
 function formatCurrency(amount: number): string {
