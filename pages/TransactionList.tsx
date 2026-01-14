@@ -1,40 +1,43 @@
 
 import React, { useState, useMemo } from 'react';
-import { Transaction, Project, TransactionStatus } from '../types';
+import { Transaction, Project, TransactionStatus, User } from '../types';
 import { GlassCard } from '../components/GlassCard';
 import { StatusBadge } from '../components/StatusBadge';
+import { PrintPhieuChi } from '../components/PrintPhieuChi';
 import { formatCurrency, formatDate, calculateInterest, exportTransactionsToExcel } from '../utils/helpers';
-import { Search, Filter, Download, Folder, Users, CheckCircle, Clock, DollarSign, PiggyBank, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { Search, Filter, Download, Folder, Users, CheckCircle, Clock, DollarSign, PiggyBank, ChevronLeft, ChevronRight, Eye, FileText } from 'lucide-react';
 
 interface TransactionListProps {
   transactions: Transaction[];
   projects: Project[];
   interestRate: number;
+  currentUser: User;
   onSelect: (t: Transaction) => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
 }
 
-export const TransactionList: React.FC<TransactionListProps> = ({ transactions, projects, interestRate, onSelect, searchTerm, setSearchTerm }) => {
+export const TransactionList: React.FC<TransactionListProps> = ({ transactions, projects, interestRate, currentUser, onSelect, searchTerm, setSearchTerm }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  const [printTransaction, setPrintTransaction] = useState<Transaction | null>(null);
 
   // Filter Data
   const filtered = useMemo(() => {
     const term = searchTerm.toLowerCase();
     return transactions.filter(t => {
       const project = projects.find(p => p.id === t.projectId);
-      
+
       // Determine which date is being displayed to allow searching by it
-      const displayDate = t.status === TransactionStatus.DISBURSED 
-        ? t.disbursementDate 
+      const displayDate = t.status === TransactionStatus.DISBURSED
+        ? t.disbursementDate
         : (t.effectiveInterestDate || project?.interestStartDate); // Show effective date if available
       const displayDateStr = displayDate ? formatDate(displayDate) : '';
 
       return (
         t.status.toLowerCase().includes(term) || // Search by Status
         t.household.name.toLowerCase().includes(term) || // Search by Name
-        t.household.cccd.includes(searchTerm) || 
+        t.household.cccd.includes(searchTerm) ||
         t.household.decisionNumber.toLowerCase().includes(term) || // Search by Decision Number
         t.id.toLowerCase().includes(term) || // Search by Transaction ID
         displayDateStr.includes(searchTerm) || // Search by Displayed Date (Expected or Actual)
@@ -49,51 +52,51 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
     const uniqueProjects = new Set(filtered.map(t => t.projectId)).size;
     const disbursedItems = filtered.filter(t => t.status === TransactionStatus.DISBURSED);
     const notDisbursedItems = filtered.filter(t => t.status !== TransactionStatus.DISBURSED);
-    
+
     // UPDATE: Disbursed Money includes interest paid + supplementary amount
     const moneyDisbursed = disbursedItems.reduce((sum, t) => {
-        const project = projects.find(p => p.id === t.projectId);
-        const baseDate = t.effectiveInterestDate || project?.interestStartDate;
-        let interest = 0;
-        if(t.disbursementDate) {
-           interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
-        }
-        const supplementary = t.supplementaryAmount || 0;
-        return sum + t.compensation.totalApproved + interest + supplementary;
+      const project = projects.find(p => p.id === t.projectId);
+      const baseDate = t.effectiveInterestDate || project?.interestStartDate;
+      let interest = 0;
+      if (t.disbursementDate) {
+        interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
+      }
+      const supplementary = t.supplementaryAmount || 0;
+      return sum + t.compensation.totalApproved + interest + supplementary;
     }, 0);
 
     // UPDATE: Pending Money includes accrued interest for HOLD items + supplementary amount
     const moneyNotDisbursed = notDisbursedItems.reduce((sum, t) => {
-        const project = projects.find(p => p.id === t.projectId);
-        let interest = 0;
-        // TẤT CẢ hồ sơ chưa giải ngân (PENDING + HOLD) đều phải được tính lãi nếu baseDate < hôm nay
-        if (t.status !== TransactionStatus.DISBURSED) {
-           const baseDate = t.effectiveInterestDate || project?.interestStartDate;
-           interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
-        }
-        const supplementary = t.supplementaryAmount || 0;
-        return sum + t.compensation.totalApproved + interest + supplementary;
+      const project = projects.find(p => p.id === t.projectId);
+      let interest = 0;
+      // TẤT CẢ hồ sơ chưa giải ngân (PENDING + HOLD) đều phải được tính lãi nếu baseDate < hôm nay
+      if (t.status !== TransactionStatus.DISBURSED) {
+        const baseDate = t.effectiveInterestDate || project?.interestStartDate;
+        interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
+      }
+      const supplementary = t.supplementaryAmount || 0;
+      return sum + t.compensation.totalApproved + interest + supplementary;
     }, 0);
-    
+
     // Calculate Interest logic for Stats - Link với tab Tổng quan / tab Số dư
     // CHỈ tính lãi từ các giao dịch CHƯA giải ngân (PENDING + HOLD) - Lãi tạm tính
     // Khi giải ngân, lãi của giao dịch đó sẽ được chuyển sang "đã chốt" và không còn trong tổng này
     let tempInterest = 0; // Lãi tạm tính (chưa giải ngân)
     let lockedInterest = 0; // Lãi đã chốt (đã giải ngân)
-    
+
     transactions.forEach(t => {
-        const project = projects.find(p => p.id === t.projectId);
-        const baseDate = t.effectiveInterestDate || project?.interestStartDate;
-        
-        if (t.status === TransactionStatus.DISBURSED && t.disbursementDate) {
-             // Lãi đã chốt (không tính vào tổng lãi PS)
-             lockedInterest += calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
-        } else if (t.status !== TransactionStatus.DISBURSED) {
-             // Lãi tạm tính (chỉ từ các giao dịch chưa giải ngân)
-             tempInterest += calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
-        }
+      const project = projects.find(p => p.id === t.projectId);
+      const baseDate = t.effectiveInterestDate || project?.interestStartDate;
+
+      if (t.status === TransactionStatus.DISBURSED && t.disbursementDate) {
+        // Lãi đã chốt (không tính vào tổng lãi PS)
+        lockedInterest += calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
+      } else if (t.status !== TransactionStatus.DISBURSED) {
+        // Lãi tạm tính (chỉ từ các giao dịch chưa giải ngân)
+        tempInterest += calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
+      }
     });
-    
+
     const totalInterest = tempInterest; // Chỉ trả về lãi tạm tính
 
     return {
@@ -124,26 +127,26 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
 
   const StatBox = ({ label, value, subValue, icon: Icon, colorClass }: any) => (
     <GlassCard className="p-4 flex flex-col justify-between border-slate-200 min-h-[100px] shadow-sm">
-       <div className="flex justify-between items-start mb-2">
-         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">{label}</span>
-         <Icon size={16} className={colorClass} strokeWidth={2.5} />
-       </div>
-       <div className="flex flex-col">
-         <span className="text-lg font-bold text-slate-900 block">{value}</span>
-         <span className="text-[10px] font-medium text-slate-500 min-h-[14px]">{subValue || '\u00A0'}</span>
-       </div>
+      <div className="flex justify-between items-start mb-2">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">{label}</span>
+        <Icon size={16} className={colorClass} strokeWidth={2.5} />
+      </div>
+      <div className="flex flex-col">
+        <span className="text-lg font-bold text-slate-900 block">{value}</span>
+        <span className="text-[10px] font-medium text-slate-500 min-h-[14px]">{subValue || '\u00A0'}</span>
+      </div>
     </GlassCard>
   );
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
-       <div className="flex justify-between items-end pb-2">
+      <div className="flex justify-between items-end pb-2">
         <div>
           <h2 className="text-2xl font-medium text-black tracking-tight">Danh sách giao dịch</h2>
           <p className="text-sm font-medium text-slate-500 mt-1">Quản lý chi tiết từng hộ dân</p>
         </div>
         <div className="flex gap-2">
-          <button 
+          <button
             onClick={handleDownload}
             className="p-2 bg-white/60 hover:bg-white border border-slate-200 rounded-lg text-slate-600 transition-all shadow-sm group"
             title="Tải xuống Excel"
@@ -155,64 +158,64 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
 
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <StatBox 
-          label="Tổng dự án" 
-          value={stats.uniqueProjects} 
-          subValue="Trong bộ lọc" 
-          icon={Folder} 
-          colorClass="text-blue-600" 
+        <StatBox
+          label="Tổng dự án"
+          value={stats.uniqueProjects}
+          subValue="Trong bộ lọc"
+          icon={Folder}
+          colorClass="text-blue-600"
         />
-        <StatBox 
-          label="Hộ đã GN" 
-          value={stats.disbursedCount} 
-          subValue="Đã hoàn tất" 
-          icon={CheckCircle} 
-          colorClass="text-emerald-600" 
+        <StatBox
+          label="Hộ đã GN"
+          value={stats.disbursedCount}
+          subValue="Đã hoàn tất"
+          icon={CheckCircle}
+          colorClass="text-emerald-600"
         />
-        <StatBox 
-          label="Hộ chưa GN" 
-          value={stats.notDisbursedCount} 
-          subValue="Đang chờ" 
-          icon={Clock} 
-          colorClass="text-amber-600" 
+        <StatBox
+          label="Hộ chưa GN"
+          value={stats.notDisbursedCount}
+          subValue="Đang chờ"
+          icon={Clock}
+          colorClass="text-amber-600"
         />
-        <StatBox 
-          label="Tiền đã GN" 
-          value={formatCurrency(stats.moneyDisbursed)} 
-          icon={DollarSign} 
-          colorClass="text-emerald-600" 
+        <StatBox
+          label="Tiền đã GN"
+          value={formatCurrency(stats.moneyDisbursed)}
+          icon={DollarSign}
+          colorClass="text-emerald-600"
         />
-        <StatBox 
-          label="Tiền chưa GN" 
-          value={formatCurrency(stats.moneyNotDisbursed)} 
-          icon={Users} 
-          colorClass="text-amber-600" 
+        <StatBox
+          label="Tiền chưa GN"
+          value={formatCurrency(stats.moneyNotDisbursed)}
+          icon={Users}
+          colorClass="text-amber-600"
         />
-        <StatBox 
-          label="Tổng lãi PS" 
-          value={formatCurrency(stats.accruedInterest)} 
-          subValue={stats.lockedInterest > 0 ? `Đã chốt: ${formatCurrency(stats.lockedInterest)}` : "Lãi tạm tính"} 
-          icon={PiggyBank} 
-          colorClass="text-rose-600" 
+        <StatBox
+          label="Tổng lãi PS"
+          value={formatCurrency(stats.accruedInterest)}
+          subValue={stats.lockedInterest > 0 ? `Đã chốt: ${formatCurrency(stats.lockedInterest)}` : "Lãi tạm tính"}
+          icon={PiggyBank}
+          colorClass="text-rose-600"
         />
       </div>
 
       {/* Search Bar */}
       <GlassCard className="p-4 flex gap-4 items-center border-slate-200">
-         <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input 
-              type="text" 
-              placeholder="Tìm theo Trạng thái, Tên, Mã GD, Số QĐ..." 
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-sm font-bold text-black focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-slate-400"
-              value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-            />
-         </div>
-         <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
-            <Filter size={16} />
-            <span>Bộ lọc</span>
-         </button>
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <input
+            type="text"
+            placeholder="Tìm theo Trạng thái, Tên, Mã GD, Số QĐ..."
+            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-sm font-bold text-black focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-slate-400"
+            value={searchTerm}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+          />
+        </div>
+        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
+          <Filter size={16} />
+          <span>Bộ lọc</span>
+        </button>
       </GlassCard>
 
       {/* Data Table */}
@@ -240,7 +243,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
               {paginatedData.map((t, index) => {
                 const project = projects.find(p => p.id === t.projectId);
                 const isDisbursed = t.status === TransactionStatus.DISBURSED;
-                
+
                 // --- INTEREST CALCULATION LOGIC ---
                 // Prioritize effectiveInterestDate (for refunds) over project date
                 const baseDate = t.effectiveInterestDate || project?.interestStartDate;
@@ -249,11 +252,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
                 if (isDisbursed && t.disbursementDate) {
                   // CASE 1: Đã giải ngân -> Lãi tính đến ngày thực tế chi trả (đóng băng)
                   currentInterest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
-        } else if (!isDisbursed) {
-          // CASE 2: Chưa giải ngân (bao gồm cả PENDING & HOLD) -> Lãi tính đến hiện tại (tiếp tục chạy)
+                } else if (!isDisbursed) {
+                  // CASE 2: Chưa giải ngân (bao gồm cả PENDING & HOLD) -> Lãi tính đến hiện tại (tiếp tục chạy)
                   currentInterest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
                 }
-                
+
                 const supplementary = t.supplementaryAmount || 0;
                 const totalPayout = t.compensation.totalApproved + currentInterest + supplementary;
 
@@ -265,19 +268,19 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
                 let dateColorClass = 'text-slate-500';
 
                 if (isDisbursed && t.disbursementDate) {
-                   displayDateStr = formatDate(t.disbursementDate);
-                   dateNote = 'Thực tế';
-                   dateColorClass = 'text-emerald-700 font-bold';
+                  displayDateStr = formatDate(t.disbursementDate);
+                  dateNote = 'Thực tế';
+                  dateColorClass = 'text-emerald-700 font-bold';
                 } else if (baseDate) {
-                   displayDateStr = formatDate(baseDate);
-                   // Nếu có effectiveInterestDate nghĩa là đã qua nạp tiền/reset, thì là ngày tính lãi mới
-                   dateNote = t.effectiveInterestDate ? 'Ngày nạp quỹ' : 'Dự kiến';
-                   dateColorClass = 'text-slate-600 font-semibold';
+                  displayDateStr = formatDate(baseDate);
+                  // Nếu có effectiveInterestDate nghĩa là đã qua nạp tiền/reset, thì là ngày tính lãi mới
+                  dateNote = t.effectiveInterestDate ? 'Ngày nạp quỹ' : 'Dự kiến';
+                  dateColorClass = 'text-slate-600 font-semibold';
                 }
 
                 return (
-                  <tr 
-                    key={t.id} 
+                  <tr
+                    key={t.id}
                     className="hover:bg-blue-50/50 transition-colors cursor-pointer group odd:bg-white even:bg-slate-50/30"
                     onClick={() => onSelect(t)}
                   >
@@ -291,9 +294,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
                       {t.household.id}
                     </td>
                     <td className="px-4 py-3 border-r border-slate-200">
-                       <span className="text-[10px] font-bold bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded text-slate-600">
-                         {project ? project.code : t.projectId}
-                       </span>
+                      <span className="text-[10px] font-bold bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded text-slate-600">
+                        {project ? project.code : t.projectId}
+                      </span>
                     </td>
                     <td className="px-4 py-3 border-r border-slate-200">
                       <span className="text-slate-900 font-bold text-[13px] group-hover:text-blue-700 transition-colors block">{t.household.name}</span>
@@ -326,13 +329,25 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
                     <td className="px-4 py-3 text-right font-bold text-blue-700 border-r border-slate-200 bg-blue-50/30">
                       {formatCurrency(totalPayout)}
                     </td>
-                    <td className="px-4 py-3 border-r border-slate-200 text-center">
+                    <td className="px-4 py-3 border-r border-slate-200 text-center flex items-center justify-center">
                       <StatusBadge status={t.status} />
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button className="text-slate-400 hover:text-blue-600 p-1.5 hover:bg-blue-50 rounded transition-all" title="Chi tiết">
-                        <Eye size={16} strokeWidth={2.5} />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        <button className="text-slate-400 hover:text-blue-600 p-1.5 hover:bg-blue-50 rounded transition-all" title="Chi tiết">
+                          <Eye size={16} strokeWidth={2.5} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPrintTransaction(t);
+                          }}
+                          className="text-slate-400 hover:text-green-600 p-1.5 hover:bg-green-50 rounded transition-all"
+                          title="In phiếu chi"
+                        >
+                          <FileText size={16} strokeWidth={2.5} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -340,37 +355,48 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
             </tbody>
           </table>
         </div>
-        
+
         {filtered.length === 0 && (
           <div className="p-12 text-center text-slate-400 font-medium">Không tìm thấy giao dịch phù hợp</div>
         )}
 
         {/* Pagination Controls */}
         <div className="p-4 bg-white/50 border-t border-slate-200 flex justify-between items-center backdrop-blur-sm">
-           <div className="text-xs font-bold text-slate-500">
-              Hiển thị {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filtered.length)} trên tổng số {filtered.length} bản ghi
-           </div>
-           <div className="flex gap-2">
-              <button 
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="p-1.5 rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 transition-colors"
-              >
-                <ChevronLeft size={16} strokeWidth={2} />
-              </button>
-              <div className="flex items-center justify-center px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold text-blue-700 shadow-sm">
-                 Trang {currentPage} / {totalPages}
-              </div>
-              <button 
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="p-1.5 rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 transition-colors"
-              >
-                <ChevronRight size={16} strokeWidth={2} />
-              </button>
-           </div>
+          <div className="text-xs font-bold text-slate-500">
+            Hiển thị {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filtered.length)} trên tổng số {filtered.length} bản ghi
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 transition-colors"
+            >
+              <ChevronLeft size={16} strokeWidth={2} />
+            </button>
+            <div className="flex items-center justify-center px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold text-blue-700 shadow-sm">
+              Trang {currentPage} / {totalPages}
+            </div>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 transition-colors"
+            >
+              <ChevronRight size={16} strokeWidth={2} />
+            </button>
+          </div>
         </div>
       </GlassCard>
+
+      {/* Print Modal */}
+      {printTransaction && (
+        <PrintPhieuChi
+          transaction={printTransaction}
+          project={projects.find(p => p.id === printTransaction.projectId)}
+          interestRate={interestRate}
+          currentUser={currentUser}
+          onClose={() => setPrintTransaction(null)}
+        />
+      )}
     </div>
   );
 };

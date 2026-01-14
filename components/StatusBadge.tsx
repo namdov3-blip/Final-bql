@@ -7,23 +7,30 @@ interface StatusBadgeProps {
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
-  let styles = '';
+  let badgeStyles = '';
+  let dotStyles = '';
+
   switch (status) {
     case TransactionStatus.DISBURSED:
-      styles = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      badgeStyles = 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-[0_2px_10px_-3px_rgba(16,185,129,0.15)]';
+      dotStyles = 'bg-emerald-500';
       break;
     case TransactionStatus.PENDING:
-      styles = 'bg-amber-50 text-amber-700 border-amber-200';
+      badgeStyles = 'bg-amber-50 text-amber-700 border-amber-200 shadow-[0_2px_10px_-3px_rgba(245,158,11,0.15)]';
+      dotStyles = 'bg-amber-500';
       break;
     case TransactionStatus.HOLD:
-      styles = 'bg-red-50 text-red-700 border-red-200';
+      badgeStyles = 'bg-rose-50 text-rose-700 border-rose-200 shadow-[0_2px_10px_-3px_rgba(244,63,94,0.15)]';
+      dotStyles = 'bg-rose-500';
       break;
     default:
-      styles = 'bg-gray-100 text-gray-700 border-gray-200';
+      badgeStyles = 'bg-slate-100 text-slate-700 border-slate-200';
+      dotStyles = 'bg-slate-400';
   }
 
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium border backdrop-blur-sm ${styles}`}>
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border whitespace-nowrap min-w-[110px] justify-center transition-all ${badgeStyles}`}>
+      <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${dotStyles}`} />
       {status}
     </span>
   );

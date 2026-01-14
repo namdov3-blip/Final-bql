@@ -1,30 +1,30 @@
 import React, { useState } from 'react';
 import { User } from '../types';
-import { LogIn, Lock, User as UserIcon } from 'lucide-react';
+import { LogIn, Lock, User as UserIcon, Loader2 } from 'lucide-react';
+import { authAPI } from '../services/api';
 
 interface LoginProps {
-  users: User[];
   onLogin: (user: User) => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ users, onLogin }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    const user = users.find(u => 
-      (u.name.toLowerCase() === username.toLowerCase() || u.id === username) && 
-      u.password === password
-    );
-
-    if (user) {
-      onLogin(user);
-    } else {
-      setError('Tên đăng nhập hoặc mật khẩu không đúng');
+    try {
+      const data = await authAPI.login(username, password);
+      onLogin(data.data);
+    } catch (err: any) {
+      setError(err.message || 'Tên đăng nhập hoặc mật khẩu không đúng');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -36,9 +36,9 @@ export const Login: React.FC<LoginProps> = ({ users, onLogin }) => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <img 
-            src="https://www.agribank.com.vn/wp-content/themes/agribank/images/logo.png" 
-            alt="Agribank Logo" 
+          <img
+            src="https://www.agribank.com.vn/wp-content/themes/agribank/images/logo.png"
+            alt="Agribank Logo"
             className="h-16 w-auto mx-auto mb-4 object-contain"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
@@ -73,8 +73,9 @@ export const Login: React.FC<LoginProps> = ({ users, onLogin }) => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-lg text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                  placeholder="Nhập tên đăng nhập hoặc ID"
+                  placeholder="Nhập tên đăng nhập"
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -92,6 +93,7 @@ export const Login: React.FC<LoginProps> = ({ users, onLogin }) => {
                   className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-lg text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   placeholder="Nhập mật khẩu"
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -104,10 +106,20 @@ export const Login: React.FC<LoginProps> = ({ users, onLogin }) => {
 
             <button
               type="submit"
-              className="w-full py-3.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              disabled={loading}
+              className="w-full py-3.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <LogIn size={18} />
-              Đăng nhập
+              {loading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Đang đăng nhập...
+                </>
+              ) : (
+                <>
+                  <LogIn size={18} />
+                  Đăng nhập
+                </>
+              )}
             </button>
           </form>
 
@@ -117,7 +129,7 @@ export const Login: React.FC<LoginProps> = ({ users, onLogin }) => {
             </p>
             <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
               <p className="text-[10px] font-bold text-slate-600 uppercase mb-1">Tài khoản mặc định:</p>
-              <p className="text-[10px] text-slate-600">Tên đăng nhập: <span className="font-mono font-bold">Quản trị viên</span> hoặc <span className="font-mono font-bold">admin-001</span></p>
+              <p className="text-[10px] text-slate-600">Tên đăng nhập: <span className="font-mono font-bold">Quản trị viên</span></p>
               <p className="text-[10px] text-slate-600">Mật khẩu: <span className="font-mono font-bold">admin</span></p>
             </div>
           </div>
