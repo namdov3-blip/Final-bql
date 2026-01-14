@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import connectDB from '../../../lib/mongodb';
-import { Project, Transaction, AuditLog } from '../../../lib/models';
+import { Project, Transaction, BankTransaction, AuditLog } from '../../../lib/models';
 import { authMiddleware } from '../../../lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -108,8 +108,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(404).json({ error: 'Không tìm thấy dự án' });
             }
 
-            // Delete related transactions
+            // 1. Ghi nhận rút tiền (Thu hồi dự toán)
+            const org = project.organization;
+            const lastBankTx = await (BankTransaction as any).findOne({ organization: org }).sort({ date: -1 });
+            const currentBalance = lastBankTx?.runningBalance || 0;
+            const withdrawAmount = project.totalBudget || 0;
+
+            if (withdrawAmount > 0) {
+                await (BankTransaction as any).create({
+                    type: 'Rút tiền',
+                    amount: -withdrawAmount,
+                    date: new Date(),
+                    note: `Xóa dự án: ${project.code}. Thu hồi dự toán.`,
+                    createdBy: payload.name,
+                    runningBalance: currentBalance - withdrawAmount,
+                    organization: org,
+                    projectId: project._id,
+                    updatedAt: new Date()
+                });
+            }
+
+            // 2. Xóa các giao dịch liên quan
             await (Transaction as any).deleteMany({ projectId: id });
+
+            // 3. Xóa bản ghi dự án
             await (Project as any).findByIdAndDelete(id);
 
             await (AuditLog as any).create({
@@ -117,7 +139,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 role: payload.role,
                 action: 'Xóa dự án',
                 target: `Dự án ${project.code}`,
-                details: `Đã xóa dự án ${project.name} và tất cả giao dịch liên quan`
+                details: `Đã xóa dự án ${project.name}, thu hồi dự toán ${withdrawAmount.toLocaleString('vi-VN')}đ và xóa tất cả giao dịch liên quan`
             });
 
             return res.status(200).json({ success: true, message: 'Đã xóa dự án' });

@@ -95,7 +95,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 note: `Chi trả dự án: ${project?.code} - Hộ: ${transaction.household.name}`,
                 createdBy: payload.name,
                 runningBalance: currentBalance - totalFinal,
-                organization: org
+                organization: org,
+                projectId: project?._id
             });
 
             transaction.disbursementDate = now;

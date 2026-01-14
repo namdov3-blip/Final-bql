@@ -64,7 +64,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             note: `Hoàn quỹ hồ sơ: ${transaction._id} - Hộ: ${transaction.household.name}`,
             createdBy: payload.name,
             runningBalance: currentBalance + refundedAmount,
-            organization: org
+            organization: org,
+            projectId: project?._id
         });
 
         // Update transaction
