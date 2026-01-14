@@ -16,7 +16,9 @@ function calculateInterest(
 ): number {
     if (!startDate) return 0;
     const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0); // Reset hours for consistency
     const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0); // Reset hours for consistency
     const days = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
     if (days <= 0) return 0;
     const dailyRate = annualRate / 100 / 365;

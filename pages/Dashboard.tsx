@@ -262,7 +262,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           title="TỔNG TIỀN TÀI KHOẢN"
-          value={formatCurrency(statsTotalAccountBalance)}
+          value={formatCurrency(statsTotalAccountBalance + statsTotalInterest)}
           subValue="Đã bao gồm lãi tạm tính"
           icon={Wallet}
           colorClass="bg-blue-600 text-blue-600"
