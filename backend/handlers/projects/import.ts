@@ -211,8 +211,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(400).json({ error: 'Không tìm thấy dữ liệu hợp lệ trong file' });
         }
 
-        const baseProjectCode = (projectCode || transactionsData[0]?.projectCode || `DA-${Date.now()}`).toString().trim();
-        const baseProjectName = (projectName || transactionsData[0]?.projectName || `Dự án ${baseProjectCode}`).toString().trim();
+        // Auto-generate project code (timestamp-based unique ID)
+        const baseProjectCode = projectCode || `DA${Date.now()}`;
+        const baseProjectName = projectName || `Dự án ${baseProjectCode}`;
 
         const previewResult = {
             project: {
