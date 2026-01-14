@@ -12,7 +12,7 @@ export interface JWTPayload {
 
 export function generateToken(payload: JWTPayload): string {
     const secret = process.env.JWT_SECRET || 'fallback-secret-key';
-    return jwt.sign(payload, secret, { expiresIn: '7d' });
+    return jwt.sign(payload, secret, { expiresIn: '10m' });
 }
 
 export function verifyToken(token: string): JWTPayload | null {

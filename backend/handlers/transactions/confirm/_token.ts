@@ -1,7 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import connectDB from '../../../../lib/mongodb';
 import { Transaction, Project, BankTransaction, AuditLog, Settings } from '../../../../lib/models';
-import { verifyQRToken } from '../../../../lib/auth';
+import { verifyQRToken, authMiddleware } from '../../../../lib/auth';
 
 function formatCurrency(amount: number): string {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -32,6 +32,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
+        const payloadAuth = await authMiddleware(req, res);
+        if (!payloadAuth) return;
+
         await connectDB();
 
         const token = req.query.token || req.query.id || (req as any).params?.token;

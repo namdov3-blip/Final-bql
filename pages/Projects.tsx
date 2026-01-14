@@ -86,7 +86,9 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
                 maHo: t.household.id,
                 qd: t.household.decisionNumber,
                 date: formatDate(t.household.decisionDate),
-                projectCode: res.data.project.code,
+                projectCode: t.projectCode || res.data.project.code,
+                projectName: t.projectName || res.data.project.name,
+                paymentType: t.paymentType,
                 amount: t.compensation.totalApproved
               }))
             });
@@ -226,12 +228,15 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
             <tbody className="divide-y divide-slate-300">
               {projects.map((project, index) => {
                 // Calculate Progress - bao gồm cả tiền bổ sung + lãi phát sinh
-                const projectTrans = transactions.filter(t => t.projectId === project.id);
+                const projectTrans = transactions.filter(t => {
+                  const pIdStr = (t.projectId && (t.projectId as any)._id) ? (t.projectId as any)._id.toString() : t.projectId?.toString();
+                  return pIdStr === project.id || pIdStr === (project as any)._id;
+                });
                 const disbursed = projectTrans
                   .filter(t => t.status === TransactionStatus.DISBURSED)
                   .reduce((acc, t) => {
                     const supplementary = t.supplementaryAmount || 0;
-                    const baseDate = t.effectiveInterestDate || project.interestStartDate;
+                    const baseDate = t.effectiveInterestDate || project.interestStartDate || (project as any).startDate;
                     const interest = t.disbursementDate
                       ? calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate))
                       : 0;
@@ -241,7 +246,7 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
                 // Tính tổng giá trị dự án thực tế (bao gồm tiền bổ sung + lãi phát sinh)
                 const actualTotalBudget = projectTrans.reduce((sum, t) => {
                   const supplementary = t.supplementaryAmount || 0;
-                  const baseDate = t.effectiveInterestDate || project.interestStartDate;
+                  const baseDate = t.effectiveInterestDate || project.interestStartDate || (project as any).startDate;
                   let interest = 0;
                   if (t.status === TransactionStatus.DISBURSED && t.disbursementDate) {
                     interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
@@ -418,7 +423,9 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
                   <FileSpreadsheet size={24} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Xác nhận nhập dữ liệu</h3>
+                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    Xác nhận nhập dữ liệu <span className="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded text-slate-500 font-mono">v1.1</span>
+                  </h3>
                   <p className="text-xs text-slate-500 font-bold">Vui lòng kiểm tra kỹ thông tin trích xuất từ file Excel trước khi lưu.</p>
                 </div>
               </div>
@@ -434,7 +441,7 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
             <div className="flex-1 overflow-hidden flex flex-col p-5 bg-slate-50/30">
 
               {/* Project Info Summary (Editable) */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-6">
                 <div className="sm:col-span-1 relative group">
                   <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1 flex items-center gap-1">
                     Tên dự án <Edit2 size={10} className="text-slate-400" />
@@ -442,7 +449,7 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
                   <input
                     value={previewData.project.name}
                     onChange={(e) => handleProjectInfoChange('name', e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded px-3 py-2 text-sm font-bold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all shadow-sm"
+                    className="w-full bg-white border border-slate-200 rounded px-2 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all shadow-sm"
                   />
                 </div>
                 <div className="sm:col-span-1">
@@ -452,60 +459,72 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
                   <input
                     value={previewData.project.code}
                     onChange={(e) => handleProjectInfoChange('code', e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded px-3 py-2 text-sm font-mono font-bold text-blue-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all shadow-sm"
+                    className="w-full bg-white border border-slate-200 rounded px-2 py-2 text-xs font-mono font-bold text-blue-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all shadow-sm"
                   />
                 </div>
-                {/* NEW DATE EDITOR FIELD */}
+                <div className="sm:col-span-1">
+                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1 flex items-center gap-1">
+                    Địa điểm <Edit2 size={10} className="text-slate-400" />
+                  </label>
+                  <input
+                    placeholder="Nhập địa điểm..."
+                    value={previewData.project.location || ''}
+                    onChange={(e) => handleProjectInfoChange('location', e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded px-2 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all shadow-sm"
+                  />
+                </div>
                 <div className="sm:col-span-1">
                   <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1 flex items-center gap-1">
                     Ngày GN & Tính lãi <Edit2 size={10} className="text-slate-400" />
                   </label>
                   <input
                     type="date"
-                    value={previewData.project.interestStartDate ? previewData.project.interestStartDate.split('T')[0] : ''}
+                    value={previewData.project.interestStartDate ? (typeof previewData.project.interestStartDate === 'string' ? previewData.project.interestStartDate.split('T')[0] : new Date(previewData.project.interestStartDate).toISOString().split('T')[0]) : ''}
                     onChange={(e) => {
                       const newDate = e.target.value;
                       handleProjectInfoChange('interestStartDate', newDate);
                     }}
-                    className="w-full bg-white border border-slate-200 rounded px-3 py-2 text-sm font-bold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all shadow-sm"
+                    className="w-full bg-white border border-slate-200 rounded px-2 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all shadow-sm"
                   />
                 </div>
                 <div className="sm:col-span-1">
-                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Tổng ngân sách dự kiến</label>
+                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Tổng ngân sách</label>
                   <input
                     readOnly
                     value={formatCurrency(previewData.project.totalBudget)}
-                    className="w-full bg-slate-100 border border-slate-200 rounded px-3 py-2 text-sm font-bold text-emerald-700 focus:outline-none text-right cursor-not-allowed"
+                    className="w-full bg-slate-100 border border-slate-200 rounded px-2 py-2 text-xs font-bold text-emerald-700 focus:outline-none text-right cursor-not-allowed"
                   />
                 </div>
               </div>
 
-              {/* Data Table with Freeze Panes */}
-              <div className="flex-1 overflow-auto border border-slate-300 rounded-lg bg-white shadow-inner custom-scrollbar relative">
-                <table className="w-full text-left border-collapse min-w-max">
-                  <thead className="bg-slate-100 sticky top-0 z-30 shadow-sm border-b border-slate-200">
+              {/* Data Table Area */}
+              <div className="flex-1 overflow-auto border border-slate-200 rounded-lg bg-white shadow-sm custom-scrollbar">
+                <table className="w-full text-left border-collapse min-w-[1200px]">
+                  <thead className="bg-slate-100 border-b border-slate-200">
                     <tr>
-                      <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 text-center w-12 bg-slate-100 sticky left-0 z-40">STT</th>
-                      <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 min-w-[180px] bg-slate-100 sticky left-12 z-40 shadow-[4px_0_4px_-4px_rgba(0,0,0,0.1)]">Họ và tên</th>
+                      <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 text-center w-12">STT</th>
+                      <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 min-w-[180px]">Họ và tên</th>
                       <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 min-w-[120px]">CCCD</th>
                       <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 min-w-[140px]">Mã Hộ Dân</th>
                       <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 min-w-[120px]">Số quyết định</th>
                       <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 min-w-[100px]">Ngày QD</th>
+                      <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 min-w-[150px]">Loại chi trả</th>
                       <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 min-w-[100px]">Mã dự án</th>
-                      <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider border-slate-200 text-right min-w-[160px] bg-slate-50 sticky right-0 z-40 shadow-[-4px_0_4px_-4px_rgba(0,0,0,0.1)]">Số tiền chi trả</th>
+                      <th className="p-3 text-[10px] font-bold text-slate-700 uppercase tracking-wider text-right min-w-[160px]">Số tiền chi trả</th>
                     </tr>
                   </thead>
-                  <tbody className="text-xs divide-y divide-slate-300">
+                  <tbody className="text-xs divide-y divide-slate-200">
                     {previewData.rawRows.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-blue-50/50 transition-colors even:bg-slate-50/30">
-                        <td className="p-3 border-r border-slate-200 text-center font-bold text-slate-600 sticky left-0 bg-white z-20 group-hover:bg-blue-50/50">{row.stt}</td>
-                        <td className="p-3 border-r border-slate-200 font-bold text-slate-800 sticky left-12 bg-white z-20 shadow-[4px_0_4px_-4px_rgba(0,0,0,0.05)] group-hover:bg-blue-50/50">{row.name}</td>
-                        <td className="p-3 border-r border-slate-200 font-mono font-semibold text-slate-700">{row.cccd}</td>
-                        <td className="p-3 border-r border-slate-200 font-mono text-slate-600 font-semibold text-[10px]">{row.maHo}</td>
-                        <td className="p-3 border-r border-slate-200 text-slate-700 font-medium">{row.qd}</td>
-                        <td className="p-3 border-r border-slate-200 text-slate-700 font-medium">{row.date}</td>
-                        <td className="p-3 border-r border-slate-200 text-slate-700 font-mono font-bold text-[10px]">{row.projectCode}</td>
-                        <td className="p-3 text-right font-bold text-emerald-700 bg-white sticky right-0 z-20 border-l border-slate-200 shadow-[-4px_0_4px_-4px_rgba(0,0,0,0.05)] group-hover:bg-blue-50/50">
+                      <tr key={idx} className="hover:bg-blue-50/30 transition-colors even:bg-slate-50/20">
+                        <td className="p-3 border-r border-slate-200 text-center font-medium text-slate-500">{row.stt}</td>
+                        <td className="p-3 border-r border-slate-200 font-bold text-slate-800">{row.name}</td>
+                        <td className="p-3 border-r border-slate-200 font-mono text-slate-600">{row.cccd || '-'}</td>
+                        <td className="p-3 border-r border-slate-200 font-mono text-slate-600 text-[10px]">{row.maHo || '-'}</td>
+                        <td className="p-3 border-r border-slate-200 text-slate-700">{row.qd || '-'}</td>
+                        <td className="p-3 border-r border-slate-200 text-slate-700">{row.date || '-'}</td>
+                        <td className="p-3 border-r border-slate-200 font-medium text-blue-600">{row.paymentType || '-'}</td>
+                        <td className="p-3 border-r border-slate-200 text-slate-500 font-mono text-[10px]">{row.projectCode}</td>
+                        <td className="p-3 text-right font-bold text-emerald-700">
                           {formatCurrency(row.amount)}
                         </td>
                       </tr>

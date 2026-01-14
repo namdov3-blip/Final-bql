@@ -9,6 +9,50 @@ function formatCurrency(amount: number): string {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 }
 
+// Parse Vietnamese currency/number strings
+function parseVietnameseNumber(val: any): number {
+    if (typeof val === 'number') return val;
+    if (!val) return 0;
+    let s = val.toString().trim();
+    // Remove "₫", "VND" and spaces
+    s = s.replace(/[₫VND\s]/gi, '');
+
+    // Heuristic for VN/US formats: 
+    // If it has both . and , (e.g. 1.234.567,89) -> remove dots, replace comma with dot.
+    // If it has only dots and the last dot is 3 chars away -> 1.234.567 -> remove dots.
+    // If it has only one dot/comma near the end -> 123.45 -> keep it.
+
+    const hasComma = s.includes(',');
+    const hasDot = s.includes('.');
+
+    if (hasComma && hasDot) {
+        // Assume format like 1.234.567,89 or 1,234,567.89
+        const lastDot = s.lastIndexOf('.');
+        const lastComma = s.lastIndexOf(',');
+        if (lastComma > lastDot) { // VN style: 1.234,56
+            return parseFloat(s.replace(/\./g, '').replace(',', '.'));
+        } else { // US style: 1,234.56
+            return parseFloat(s.replace(/,/g, ''));
+        }
+    } else if (hasComma) {
+        // Only commas. If it's like 1,000,000 -> remove. If 123,45 -> decimal.
+        const parts = s.split(',');
+        if (parts.length > 1 && parts[parts.length - 1].length === 3) {
+            return parseFloat(s.replace(/,/g, ''));
+        }
+        return parseFloat(s.replace(',', '.'));
+    } else if (hasDot) {
+        // Only dots. If it's like 1.000.000 -> remove. If 123.45 -> decimal.
+        const parts = s.split('.');
+        if (parts.length > 1 && parts[parts.length - 1].length === 3) {
+            return parseFloat(s.replace(/\./g, ''));
+        }
+        return parseFloat(s);
+    }
+
+    return parseFloat(s) || 0;
+}
+
 // Parse Excel date
 function parseExcelDate(value: any): Date {
     if (!value) return new Date();
@@ -84,107 +128,125 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return sum + amount;
             }, 0);
         } else if (fileData) {
-            // Case 2: Parse Excel file from base64 (Legacy/Real file)
+            // Case 2: Parse Excel file from base64
             const base64Data = fileData.includes('base64,') ? fileData.split('base64,')[1] : fileData;
             const buffer = Buffer.from(base64Data, 'base64');
             const workbook = XLSX.read(buffer, { type: 'buffer' });
 
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
-
-            if (jsonData.length === 0) {
-                return res.status(400).json({ error: 'File Excel không có dữ liệu' });
-            }
-
-            // Auto-detect column names with robust matching
-            const normalize = (str: string) => {
-                return str.toLowerCase()
-                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
-                    .replace(/[^a-z0-9]/g, ''); // Remove special chars/spaces
+            const normalize = (str: any) => {
+                if (!str) return '';
+                return str.toString().toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^a-z0-9]/g, '');
             };
 
-            let jsonData: any[] = [];
-            let columnKeys: string[] = [];
-            let finalWorksheet: any = null;
+            const findInKeys = (keys: string[], patterns: string[]): string | undefined => {
+                const normPatterns = patterns.map(p => normalize(p));
+                const normKeys = keys.map(k => normalize(k));
+                for (const p of normPatterns) {
+                    const idx = normKeys.findIndex(nk => nk === p);
+                    if (idx !== -1) return keys[idx];
+                }
+                for (const p of normPatterns) {
+                    const idx = normKeys.findIndex(nk => nk && nk.includes(p));
+                    if (idx !== -1) return keys[idx];
+                }
+                return undefined;
+            };
 
-            // Try sheets one by one until we find valid data
+            const namePatterns = ['ho va ten', 'ten chu ho', 'nguoi nhan', 'ten chu su dung dat'];
+            const amountPatterns = ['tong tien chi tra', 'tong so tien chi tra', 'so tien duoc duyet', 'tong cong', 'so tien'];
+            const cccdPatterns = ['cccd', 'cmnd', 'so the', 'dinh danh'];
+            const maHoPatterns = ['ma ho', 'ma so', 'ma hs'];
+            const qdPatterns = ['so qd', 'so quyet dinh', 'qd'];
+            const datePatterns = ['ngay qd', 'ngay quyet dinh', 'ngay'];
+            const pCodePatterns = ['ma du an', 'ma da'];
+            const pNamePatterns = ['ten du an', 'du an'];
+            const payTypePatterns = ['loai chi tra', 'hinh thuc', 'loai chi'];
+
+            // Process sheets
             for (const sheetName of workbook.SheetNames) {
-                const worksheet = workbook.Sheets[sheetName];
-                const currentData = XLSX.utils.sheet_to_json(worksheet) as any[];
+                const sheet = workbook.Sheets[sheetName];
+                const rawData: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                if (rawData.length === 0) continue;
 
-                if (currentData.length > 0) {
-                    const keys = Object.keys(currentData[0]);
-                    // Check if this sheet looks like it has name/amount
-                    const hasName = !!keys.find(k => normalize(k).includes('ten') || normalize(k).includes('name'));
-                    const hasAmount = !!keys.find(k => normalize(k).includes('tien') || normalize(k).includes('amount'));
+                let nameIdx = -1, amountIdx = -1, cccdIdx = -1, maHoIdx = -1, qdIdx = -1, dateIdx = -1;
+                let pCodeIdx = -1, pNameIdx = -1, payTypeIdx = -1;
+                let dataStartRow = 0;
 
-                    if (hasName && hasAmount) {
-                        jsonData = currentData;
-                        columnKeys = keys;
-                        finalWorksheet = worksheet;
+                // Find headers
+                for (let i = 0; i < Math.min(rawData.length, 30); i++) {
+                    const row = rawData[i];
+                    if (!row || row.length < 2) continue;
+
+                    const combinedRowCells: string[] = [];
+                    for (let c = 0; c < row.length; c++) {
+                        let combined = '';
+                        for (let r = Math.max(0, i - 3); r <= Math.min(rawData.length - 1, i + 3); r++) {
+                            const val = rawData[r][c];
+                            if (val && isNaN(Number(val))) {
+                                const s = val.toString().trim();
+                                if (!combined.includes(s)) combined = (combined + ' ' + s).trim();
+                            }
+                        }
+                        combinedRowCells[c] = combined;
+                    }
+
+                    const foundName = findInKeys(combinedRowCells, namePatterns);
+                    const foundAmount = findInKeys(combinedRowCells, amountPatterns);
+
+                    if (foundName && foundAmount) {
+                        nameIdx = combinedRowCells.indexOf(foundName);
+                        amountIdx = combinedRowCells.indexOf(foundAmount);
+
+                        const detectIdx = (patterns: string[]) => {
+                            const found = findInKeys(combinedRowCells, patterns);
+                            return found ? combinedRowCells.indexOf(found) : -1;
+                        };
+
+                        cccdIdx = detectIdx(cccdPatterns);
+                        maHoIdx = detectIdx(maHoPatterns);
+                        qdIdx = detectIdx(qdPatterns);
+                        dateIdx = detectIdx(datePatterns);
+                        pCodeIdx = detectIdx(pCodePatterns);
+                        pNameIdx = detectIdx(pNamePatterns);
+                        payTypeIdx = detectIdx(payTypePatterns);
+
+                        dataStartRow = i + 1;
                         break;
                     }
                 }
-            }
 
-            if (jsonData.length === 0) {
-                // If no "perfect" sheet found, just fallback to first sheet if it has content
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                jsonData = XLSX.utils.sheet_to_json(firstSheet) as any[];
-                if (jsonData.length > 0) {
-                    columnKeys = Object.keys(jsonData[0]);
-                } else {
-                    return res.status(400).json({ error: 'File Excel không có dữ liệu trên bất kỳ Sheet nào' });
-                }
-            }
+                if (nameIdx !== -1 && amountIdx !== -1) {
+                    for (let i = dataStartRow; i < rawData.length; i++) {
+                        const row = rawData[i];
+                        if (!row) continue;
 
-            const findColumn = (patterns: string[]): string | undefined => {
-                const normPatterns = patterns.map(p => normalize(p));
-                return columnKeys.find(key => {
-                    const normKey = normalize(key);
-                    return normPatterns.some(p => normKey.includes(p) || p.includes(normKey));
-                });
-            };
+                        const name = row[nameIdx]?.toString().trim();
+                        const amount = parseVietnameseNumber(row[amountIdx]);
 
-            const nameCol = findColumn(['tên', 'họ tên', 'họ và tên', 'name', 'fullname', 'chủ hộ', 'người nhận', 'đối tượng']);
-            const amountCol = findColumn(['số tiền', 'giá trị', 'thành tiền', 'tiền đền bù', 'tổng cộng', 'phê duyệt', 'amount', 'total', 'value']);
-            const cccdCol = findColumn(['cccd', 'cmnd', 'số thẻ', 'định danh', 'nơi cấp', 'id card']);
-            const maHoCol = findColumn(['mã hộ', 'mã số', 'mã hồ sơ', 'hồ sơ số', 'mã hs', 'ref']);
-            const qdCol = findColumn(['quyết định', 'số qđ', 'văn bản', 'căn cứ', 'qd', 'số vb']);
-            const dateCol = findColumn(['ngày', 'thời gian', 'kỳ hạn', 'date', 'time', 'ngày lập']);
-            const projectCodeCol = findColumn(['mã dự án', 'dự án', 'mã da', 'project', 'pcode']);
+                        if (!name || name === '') continue;
+                        const normName = normalize(name);
+                        if (normName === 'tongcong' || normName === 'cong' || normName.startsWith('ghichu')) continue;
+                        if (amount <= 0) continue;
 
-            if (!nameCol || !amountCol) {
-                return res.status(400).json({
-                    error: `File Excel không có đủ dữ liệu. Cần cột "Tên" và "Số tiền".`,
-                    detectedColumns: columnKeys,
-                    suggestions: {
-                        name: nameCol ? 'OK' : 'Không tìm thấy (Nên đặt là: Họ và tên)',
-                        amount: amountCol ? 'OK' : 'Không tìm thấy (Nên đặt là: Số tiền)'
+                        const getVal = (idx: number) => (idx !== -1 ? row[idx] : undefined);
+
+                        transactionsData.push({
+                            name,
+                            cccd: getVal(cccdIdx)?.toString() || '',
+                            maHo: getVal(maHoIdx)?.toString() || '',
+                            qd: getVal(qdIdx)?.toString() || '',
+                            date: parseExcelDate(getVal(dateIdx)),
+                            projectCode: getVal(pCodeIdx)?.toString() || projectCode || '',
+                            projectName: getVal(pNameIdx)?.toString() || projectName || '',
+                            paymentType: getVal(payTypeIdx)?.toString() || '',
+                            amount
+                        });
+                        totalBudget += amount;
                     }
-                });
-            }
-
-            for (let i = 0; i < jsonData.length; i++) {
-                const row = jsonData[i];
-                const name = row[nameCol];
-                const amountVal = row[amountCol];
-                const amount = typeof amountVal === 'number' ? amountVal : parseFloat(amountVal?.toString().replace(/[^0-9.-]+/g, "")) || 0;
-
-                if (!name || amount <= 0) continue;
-
-                totalBudget += amount;
-                transactionsData.push({
-                    stt: i + 1,
-                    name: name?.toString().trim(),
-                    cccd: row[cccdCol!]?.toString() || '',
-                    maHo: row[maHoCol!]?.toString() || '',
-                    qd: row[qdCol!]?.toString() || '',
-                    date: parseExcelDate(row[dateCol!]),
-                    projectCode: row[projectCodeCol!]?.toString() || projectCode || '',
-                    amount
-                });
+                    if (transactionsData.length > 0) break; // Found data in this sheet, stop
+                }
             }
         }
 
@@ -192,134 +254,143 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(400).json({ error: 'Không tìm thấy dữ liệu hợp lệ trong file' });
         }
 
-        // Generate project code if not provided
-        const finalProjectCode = projectCode || transactionsData[0]?.projectCode || `DA-${Date.now()}`;
-        const finalProjectName = projectName || `Dự án ${finalProjectCode}`;
+        const baseProjectCode = (projectCode || transactionsData[0]?.projectCode || `DA-${Date.now()}`).toString().trim();
+        const baseProjectName = (projectName || transactionsData[0]?.projectName || `Dự án ${baseProjectCode}`).toString().trim();
 
-        // Prepare return data for preview
         const previewResult = {
             project: {
-                code: finalProjectCode,
-                name: finalProjectName,
-                location: location || '',
+                code: baseProjectCode,
+                name: baseProjectName,
+                location: location || 'Chưa xác định',
                 totalBudget,
                 interestStartDate: interestStartDate ? new Date(interestStartDate) : new Date(),
                 status: 'Active'
             },
-            transactions: transactionsData.map((row, index) => ({
-                id: `TEMP-${index}`,
-                household: {
-                    id: row.maHo || `HO-${index}`,
-                    name: row.name,
-                    cccd: row.cccd,
-                    address: location || '',
-                    landOrigin: '',
-                    landArea: 0,
-                    decisionNumber: row.qd,
-                    decisionDate: row.date
-                },
-                compensation: {
-                    landAmount: 0,
-                    assetAmount: 0,
-                    houseAmount: 0,
-                    supportAmount: 0,
-                    totalApproved: row.amount
-                },
-                status: 'Chưa giải ngân'
-            }))
+            transactions: transactionsData.map((row, index) => {
+                // If row already has household (it came from directTransactions JSON), preserve it
+                if (row.household && row.compensation) {
+                    return {
+                        ...row,
+                        id: row.id || `TEMP-${index}`,
+                        status: row.status || 'Chưa giải ngân'
+                    };
+                }
+
+                // Otherwise, map from flat row data (it came from Excel parsing)
+                return {
+                    id: `TEMP-${index}`,
+                    household: {
+                        id: row.maHo || `HO-${index}`,
+                        name: row.name,
+                        cccd: row.cccd || '',
+                        address: location || 'Chưa xác định',
+                        landOrigin: '',
+                        landArea: 0,
+                        decisionNumber: row.qd || '',
+                        decisionDate: row.date
+                    },
+                    compensation: {
+                        landAmount: 0,
+                        assetAmount: 0,
+                        houseAmount: 0,
+                        supportAmount: 0,
+                        totalApproved: row.amount
+                    },
+                    paymentType: row.paymentType,
+                    projectCode: row.projectCode,
+                    projectName: row.projectName,
+                    status: 'Chưa giải ngân'
+                };
+            })
         };
 
         if (previewOnly) {
-            return res.status(200).json({
-                success: true,
-                data: previewResult
-            });
+            return res.status(200).json({ success: true, data: previewResult });
         }
 
-        // --- ACTUAL DB OPERATIONS ---
-        // Check duplicate project code only for real import
-        const existingProject = await (Project as any).findOne({ code: finalProjectCode, organization: currentUser.organization });
-        if (existingProject) {
-            return res.status(400).json({ error: `Mã dự án ${finalProjectCode} đã tồn tại trong tổ chức của bạn` });
-        }
+        // --- DB OPERATIONS ---
+        const createdProjects: any[] = [];
+        const createdBankTxs: any[] = [];
 
-        // Create project with organization
-        const project = await (Project as any).create({
-            code: finalProjectCode,
-            name: finalProjectName,
-            location: location || '',
-            totalBudget,
-            interestStartDate: interestStartDate ? new Date(interestStartDate) : new Date(),
-            uploadDate: new Date(),
-            startDate: new Date(),
-            status: 'Active',
-            organization: currentUser.organization,
-            uploadedBy: currentUser._id,
-            updatedAt: new Date()
-        });
-
-        // Create transactions
-        const transactions = await (Transaction as any).insertMany(
-            previewResult.transactions.map(t => {
-                const { id, ...txData } = t as any; // Remove temp id
-                return {
-                    ...txData,
-                    projectId: project._id,
-                    updatedAt: new Date(),
-                    history: [{
-                        timestamp: new Date(),
-                        action: 'Import từ Excel',
-                        details: `Nhập hồ sơ từ file Excel`,
-                        actor: payload.name
-                    }]
-                };
-            })
-        );
-
-        // Get current bank balance for this org
-        const lastBankTx = await (BankTransaction as any).findOne({ organization: currentUser.organization }).sort({ date: -1 });
-        const currentBalance = lastBankTx?.runningBalance || 0;
-
-        // Create bank deposit transaction
-        await (BankTransaction as any).create({
-            type: 'Nạp tiền',
-            amount: totalBudget,
-            date: new Date(),
-            note: `Tiền chưa giải ngân dự án ${finalProjectCode}`,
-            createdBy: payload.name,
-            runningBalance: currentBalance + totalBudget,
-            organization: currentUser.organization,
-            projectId: project._id,
-            updatedAt: new Date()
-        });
-
-        // Create audit log
-        await (AuditLog as any).create({
-            actor: payload.name,
-            role: payload.role,
-            action: 'Import Excel',
-            target: `Dự án ${finalProjectCode}`,
-            details: `Import ${transactions.length} hộ dân. Tổng: ${formatCurrency(totalBudget)}. Org: ${currentUser.organization}`
-        });
-
-        const projectObj = project.toObject ? project.toObject({ virtuals: true }) : project;
-
-        return res.status(201).json({
-            success: true,
-            data: {
-                project: {
-                    ...projectObj,
-                    id: (projectObj.id || projectObj._id || project._id).toString()
-                },
-                transactionCount: transactions.length,
-                totalBudget,
-                organization: currentUser.organization
+        try {
+            let project = await (Project as any).findOne({ code: baseProjectCode, organization: currentUser.organization });
+            if (!project) {
+                project = await (Project as any).create({
+                    code: baseProjectCode,
+                    name: baseProjectName,
+                    location: (location || 'Chưa xác định').trim(),
+                    totalBudget: totalBudget,
+                    interestStartDate: previewResult.project.interestStartDate,
+                    uploadDate: new Date(),
+                    startDate: new Date(),
+                    status: 'Active',
+                    organization: currentUser.organization,
+                    uploadedBy: currentUser._id,
+                    updatedAt: new Date()
+                });
+                createdProjects.push(project);
+            } else {
+                project.totalBudget = (project.totalBudget || 0) + totalBudget;
+                project.updatedAt = new Date();
+                await project.save();
             }
-        });
+
+            const lastBankTx = await (BankTransaction as any).findOne({ organization: currentUser.organization }).sort({ date: -1 });
+            const currentBalance = lastBankTx?.runningBalance || 0;
+
+            const bankTx = await (BankTransaction as any).create({
+                type: 'Nạp tiền',
+                amount: totalBudget,
+                date: new Date(),
+                note: `Import ${transactionsData.length} hồ sơ dự án ${baseProjectCode}`,
+                createdBy: payload.name,
+                runningBalance: currentBalance + totalBudget,
+                organization: currentUser.organization,
+                projectId: project._id,
+                updatedAt: new Date()
+            });
+            createdBankTxs.push(bankTx);
+
+            const transactions = await (Transaction as any).insertMany(
+                previewResult.transactions.map((t: any) => {
+                    const { id, projectCode, projectName, ...txData } = t;
+                    return {
+                        ...txData,
+                        projectId: project._id,
+                        updatedAt: new Date(),
+                        history: [{
+                            timestamp: new Date(),
+                            action: 'Import từ Excel',
+                            details: `Nhập hồ sơ từ file Excel`,
+                            actor: payload.name
+                        }]
+                    };
+                })
+            );
+
+            await (AuditLog as any).create({
+                actor: payload.name,
+                role: payload.role,
+                action: 'Import Excel',
+                target: `Dự án ${baseProjectCode}`,
+                details: `Import ${transactions.length} hộ dân vào dự án ${baseProjectName}. Tổng: ${formatCurrency(totalBudget)}`
+            });
+
+            return res.status(201).json({
+                success: true,
+                data: { transactionCount: transactions.length, totalBudget }
+            });
+
+        } catch (dbError: any) {
+            console.error('[IMPORT_DB_FAIL] Rolling back...', dbError);
+            for (const p of createdProjects) await (Project as any).deleteOne({ _id: p._id });
+            for (const btx of createdBankTxs) await (BankTransaction as any).deleteOne({ _id: btx._id });
+            return res.status(500).json({ error: 'Lỗi lưu dữ liệu: ' + dbError.message });
+        }
 
     } catch (error: any) {
         console.error('Import error:', error);
-        return res.status(500).json({ error: 'Lỗi import: ' + error.message });
+        return res.status(500).json({ error: 'Lỗi hệ thống: ' + error.message });
     }
 }
 

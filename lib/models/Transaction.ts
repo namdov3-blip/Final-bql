@@ -31,11 +31,11 @@ export interface ITransaction extends Document {
     projectId: Types.ObjectId;
     household: IHousehold;
     compensation: ICompensation;
+    paymentType?: string;
     status: 'Chưa giải ngân' | 'Đã giải ngân' | 'Tồn đọng/Giữ hộ';
     disbursementDate?: Date;
     effectiveInterestDate?: Date;
     supplementaryAmount?: number;
-    supplementaryNote?: string;
     notes?: string;
     history: ITransactionLog[];
     updatedAt: Date;
@@ -51,8 +51,8 @@ const TransactionLogSchema = new Schema<ITransactionLog>({
 
 const HouseholdSchema = new Schema<IHousehold>({
     id: { type: String, required: true },
-    name: { type: String, required: true },
-    cccd: { type: String, required: true },
+    name: { type: String, default: '' },
+    cccd: { type: String, default: '' },
     address: { type: String, default: '' },
     landOrigin: { type: String, default: '' },
     landArea: { type: Number, default: 0 },
@@ -65,13 +65,14 @@ const CompensationSchema = new Schema<ICompensation>({
     assetAmount: { type: Number, default: 0 },
     houseAmount: { type: Number, default: 0 },
     supportAmount: { type: Number, default: 0 },
-    totalApproved: { type: Number, required: true }
+    totalApproved: { type: Number, default: 0 }
 }, { _id: false });
 
 const TransactionSchema = new Schema<ITransaction>({
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     household: { type: HouseholdSchema, required: true },
     compensation: { type: CompensationSchema, required: true },
+    paymentType: { type: String, default: '' },
     status: {
         type: String,
         enum: ['Chưa giải ngân', 'Đã giải ngân', 'Tồn đọng/Giữ hộ'],

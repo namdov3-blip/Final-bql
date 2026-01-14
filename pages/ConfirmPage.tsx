@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { formatCurrency } from '../utils/helpers';
 import { CheckCircle, AlertCircle, Loader2, XCircle, User, FileText, DollarSign, Building2 } from 'lucide-react';
 
+import { Transaction, User as UserType } from '../types';
+
 interface ConfirmPageProps {
     transactionId: string;
+    currentUser: UserType | null;
 }
 
 interface TransactionInfo {
@@ -20,13 +23,19 @@ interface TransactionInfo {
     canConfirm: boolean;
 }
 
-export const ConfirmPage: React.FC<ConfirmPageProps> = ({ transactionId }) => {
+export const ConfirmPage: React.FC<ConfirmPageProps> = ({ transactionId, currentUser }) => {
     const [loading, setLoading] = useState(true);
     const [confirming, setConfirming] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const [txInfo, setTxInfo] = useState<TransactionInfo | null>(null);
-    const [confirmedBy, setConfirmedBy] = useState('');
+    const [confirmedBy, setConfirmedBy] = useState(currentUser?.name || '');
+
+    useEffect(() => {
+        if (currentUser?.name && !confirmedBy) {
+            setConfirmedBy(currentUser.name);
+        }
+    }, [currentUser, confirmedBy]);
 
     useEffect(() => {
         // Fetch transaction info from API

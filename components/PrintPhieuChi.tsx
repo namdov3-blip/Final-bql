@@ -171,7 +171,7 @@ export const PrintPhieuChi: React.FC<PrintPhieuChiProps> = ({
             {/* Content */}
             <div className="mb-4 space-y-2">
                 <p className="text-sm">
-                    Nội dung: Chi trả tiền bồi thường, hỗ trợ GPMB theo quyết định số {transaction.household.decisionNumber} ngày {new Date(transaction.household.decisionDate).toLocaleDateString('vi-VN')}
+                    Nội dung: Chi trả tiền {transaction.paymentType || 'bồi thường, hỗ trợ GPMB'} theo quyết định số {transaction.household.decisionNumber} ngày {new Date(transaction.household.decisionDate).toLocaleDateString('vi-VN')}
                 </p>
                 <p className="text-sm">
                     thuộc dự án: {project?.name || 'N/A'} (Mã dự án: {project?.code || transaction.projectId})

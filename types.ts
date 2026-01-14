@@ -51,26 +51,26 @@ export interface TransactionLog {
   action: string;
   details: string;
   totalAmount?: number;
-  actor?: string; 
+  actor?: string;
 }
 
 export interface Household {
   id: string;
   name: string;
-  cccd: string; 
+  cccd: string;
   address: string;
-  landOrigin: string; 
-  landArea: number; 
-  decisionNumber: string; 
-  decisionDate: string; 
+  landOrigin: string;
+  landArea: number;
+  decisionNumber: string;
+  decisionDate: string;
 }
 
 export interface CompensationDetails {
-  landAmount: number; 
-  assetAmount: number; 
-  houseAmount: number; 
-  supportAmount: number; 
-  totalApproved: number; 
+  landAmount: number;
+  assetAmount: number;
+  houseAmount: number;
+  supportAmount: number;
+  totalApproved: number;
 }
 
 export interface Transaction {
@@ -80,7 +80,8 @@ export interface Transaction {
   compensation: CompensationDetails;
   status: TransactionStatus;
   disbursementDate?: string;
-  effectiveInterestDate?: string; 
+  effectiveInterestDate?: string;
+  paymentType?: string; // Loại chi trả
   notes?: string;
   history?: TransactionLog[];
   supplementaryAmount?: number; // Số tiền bổ sung
@@ -94,8 +95,8 @@ export interface Project {
   location: string;
   totalBudget: number;
   startDate: string;
-  uploadDate?: string; 
-  interestStartDate?: string; 
+  uploadDate?: string;
+  interestStartDate?: string;
   status: 'Active' | 'Completed' | 'Planning';
 }
 
@@ -104,7 +105,7 @@ export interface User {
   name: string;
   role: 'Admin' | 'User1' | 'User2' | 'PMB';
   avatar: string;
-  permissions: string[]; 
+  permissions: string[];
   password?: string;
   organization?: 'Đông Anh' | 'Phúc Thịnh' | 'Thiên Lộc' | 'Thư Lâm' | 'Vĩnh Thanh';
 }

@@ -26,7 +26,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
   const filtered = useMemo(() => {
     const term = searchTerm.toLowerCase();
     return transactions.filter(t => {
-      const project = projects.find(p => p.id === t.projectId);
+      const pIdStr = (t.projectId && (t.projectId as any)._id) ? (t.projectId as any)._id.toString() : t.projectId?.toString();
+      const project = projects.find(p => (p.id === pIdStr || p._id === pIdStr));
 
       // Determine which date is being displayed to allow searching by it
       const displayDate = t.status === TransactionStatus.DISBURSED
@@ -41,7 +42,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
         t.household.decisionNumber.toLowerCase().includes(term) || // Search by Decision Number
         t.id.toLowerCase().includes(term) || // Search by Transaction ID
         displayDateStr.includes(searchTerm) || // Search by Displayed Date (Expected or Actual)
-        t.projectId.toLowerCase().includes(term) ||
+        (t.paymentType && t.paymentType.toLowerCase().includes(term)) || // Search by Payment Type
+        (typeof t.projectId === 'string' && t.projectId.toLowerCase().includes(term)) ||
         project?.code.toLowerCase().includes(term)
       );
     });
@@ -49,14 +51,15 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
 
   // Statistics Calculations based on Filtered Data
   const stats = useMemo(() => {
-    const uniqueProjects = new Set(filtered.map(t => t.projectId)).size;
+    const uniqueProjects = new Set(filtered.map(t => (t.projectId && (t.projectId as any)._id) ? (t.projectId as any)._id.toString() : t.projectId?.toString())).size;
     const disbursedItems = filtered.filter(t => t.status === TransactionStatus.DISBURSED);
     const notDisbursedItems = filtered.filter(t => t.status !== TransactionStatus.DISBURSED);
 
     // UPDATE: Disbursed Money includes interest paid + supplementary amount
     const moneyDisbursed = disbursedItems.reduce((sum, t) => {
-      const project = projects.find(p => p.id === t.projectId);
-      const baseDate = t.effectiveInterestDate || project?.interestStartDate;
+      const pIdStr = (t.projectId && (t.projectId as any)._id) ? (t.projectId as any)._id.toString() : t.projectId?.toString();
+      const project = projects.find(p => (p.id === pIdStr || p._id === pIdStr));
+      const baseDate = t.effectiveInterestDate || project?.interestStartDate || (project as any)?.startDate;
       let interest = 0;
       if (t.disbursementDate) {
         interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
@@ -67,11 +70,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
 
     // UPDATE: Pending Money includes accrued interest for HOLD items + supplementary amount
     const moneyNotDisbursed = notDisbursedItems.reduce((sum, t) => {
-      const project = projects.find(p => p.id === t.projectId);
+      const pIdStr = (t.projectId && (t.projectId as any)._id) ? (t.projectId as any)._id.toString() : t.projectId?.toString();
+      const project = projects.find(p => (p.id === pIdStr || p._id === pIdStr));
       let interest = 0;
       // TẤT CẢ hồ sơ chưa giải ngân (PENDING + HOLD) đều phải được tính lãi nếu baseDate < hôm nay
       if (t.status !== TransactionStatus.DISBURSED) {
-        const baseDate = t.effectiveInterestDate || project?.interestStartDate;
+        const baseDate = t.effectiveInterestDate || project?.interestStartDate || (project as any)?.startDate;
         interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
       }
       const supplementary = t.supplementaryAmount || 0;
@@ -85,8 +89,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
     let lockedInterest = 0; // Lãi đã chốt (đã giải ngân)
 
     transactions.forEach(t => {
-      const project = projects.find(p => p.id === t.projectId);
-      const baseDate = t.effectiveInterestDate || project?.interestStartDate;
+      const pIdStr = (t.projectId && (t.projectId as any)._id) ? (t.projectId as any)._id.toString() : t.projectId?.toString();
+      const project = projects.find(p => (p.id === pIdStr || p._id === pIdStr));
+      const baseDate = t.effectiveInterestDate || project?.interestStartDate || (project as any)?.startDate;
 
       if (t.status === TransactionStatus.DISBURSED && t.disbursementDate) {
         // Lãi đã chốt (không tính vào tổng lãi PS)
@@ -229,6 +234,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
                 <th className="px-4 py-3.5 border-r border-slate-200 min-w-[120px]">Mã Hộ Dân</th>
                 <th className="px-4 py-3.5 border-r border-slate-200 min-w-[100px]">Mã Dự Án</th>
                 <th className="px-4 py-3.5 border-r border-slate-200 min-w-[150px]">Họ và tên</th>
+                <th className="px-4 py-3.5 border-r border-slate-200 min-w-[120px]">Loại chi trả</th>
                 <th className="px-4 py-3.5 border-r border-slate-200 min-w-[120px]">Quyết định</th>
                 <th className="px-4 py-3.5 border-r border-slate-200 min-w-[130px]">Ngày GN</th>
                 <th className="px-4 py-3.5 text-right border-r border-slate-200 min-w-[130px]">Tổng phê duyệt</th>
@@ -241,12 +247,13 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
             </thead>
             <tbody className="divide-y divide-slate-300">
               {paginatedData.map((t, index) => {
-                const project = projects.find(p => p.id === t.projectId);
+                const pIdStr = (t.projectId && (t.projectId as any)._id) ? (t.projectId as any)._id.toString() : t.projectId?.toString();
+                const project = projects.find(p => (p.id === pIdStr || (p as any)._id === pIdStr));
                 const isDisbursed = t.status === TransactionStatus.DISBURSED;
 
                 // --- INTEREST CALCULATION LOGIC ---
                 // Prioritize effectiveInterestDate (for refunds) over project date
-                const baseDate = t.effectiveInterestDate || project?.interestStartDate;
+                const baseDate = t.effectiveInterestDate || project?.interestStartDate || (project as any)?.startDate;
                 let currentInterest = 0;
 
                 if (isDisbursed && t.disbursementDate) {
@@ -295,11 +302,16 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
                     </td>
                     <td className="px-4 py-3 border-r border-slate-200">
                       <span className="text-[10px] font-bold bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded text-slate-600">
-                        {project ? project.code : t.projectId}
+                        {project ? project.code : (t.projectId as any).toString()}
                       </span>
                     </td>
                     <td className="px-4 py-3 border-r border-slate-200">
                       <span className="text-slate-900 font-bold text-[13px] group-hover:text-blue-700 transition-colors block">{t.household.name}</span>
+                    </td>
+                    <td className="px-4 py-3 border-r border-slate-200">
+                      <span className="text-[11px] font-bold text-slate-600 italic bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                        {t.paymentType || '-'}
+                      </span>
                     </td>
                     <td className="px-4 py-3 border-r border-slate-200">
                       <div className="flex flex-col">

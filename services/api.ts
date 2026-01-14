@@ -70,12 +70,13 @@ export const projectsAPI = {
 
 // ============ TRANSACTIONS ============
 export const transactionsAPI = {
-    list: (params?: { projectId?: string; status?: string; search?: string; page?: number }) => {
+    list: (params?: { projectId?: string; status?: string; search?: string; page?: number; limit?: number }) => {
         const query = new URLSearchParams();
         if (params?.projectId) query.set('projectId', params.projectId);
         if (params?.status) query.set('status', params.status);
         if (params?.search) query.set('search', params.search);
         if (params?.page) query.set('page', params.page.toString());
+        if (params?.limit) query.set('limit', params.limit.toString());
 
         return fetchAPI<{ data: any[]; pagination: any }>(`/transactions?${query}`);
     },

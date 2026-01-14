@@ -97,7 +97,7 @@ app.post('/api/transactions/:id/refund', (req, res) => {
 });
 app.get('/api/transactions/:id/qr', (req, res) => {
     req.query = { ...req.query, id: req.params.id };
-    handle(req, res, './backend/handlers/transactions/[id]/qr');
+    handle(req, res, './backend/handlers/transactions/generate-qr');
 });
 
 app.all('/api/transactions/confirm/:token', (req, res) => {

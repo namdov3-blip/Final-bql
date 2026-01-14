@@ -65,7 +65,7 @@ const App: React.FC = () => {
         settingsRes
       ] = await Promise.all([
         api.projects.list().catch(() => ({ data: [] })),
-        api.transactions.list().catch(() => ({ data: [] })),
+        api.transactions.list({ limit: 1000 }).catch(() => ({ data: [] })),
         api.bank.getBalance().catch(() => ({ data: { openingBalance: 0, currentBalance: 0, reconciledBalance: 0 } })),
         api.bank.listTransactions().catch(() => ({ data: [] })),
         api.users.list().catch(() => ({ data: [] })),
@@ -382,13 +382,6 @@ const App: React.FC = () => {
     return null;
   };
 
-  const confirmTransactionId = getConfirmId();
-
-  // Show confirm page without login
-  if (confirmTransactionId) {
-    return <ConfirmPage transactionId={confirmTransactionId} />;
-  }
-
   // Show loading screen while verifying auth
   if (loading) {
     return (
@@ -404,6 +397,13 @@ const App: React.FC = () => {
   // Show login page if not logged in
   if (!currentUser) {
     return <Login onLogin={handleLogin} />;
+  }
+
+  const confirmTransactionId = getConfirmId();
+
+  // Show confirm page - now only if logged in
+  if (confirmTransactionId) {
+    return <ConfirmPage transactionId={confirmTransactionId} currentUser={currentUser} />;
   }
 
   return (
