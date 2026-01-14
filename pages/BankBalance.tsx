@@ -132,8 +132,8 @@ export const BankBalance: React.FC<BankBalanceProps> = ({
             <Wallet size={120} strokeWidth={0.5} />
           </div>
           <h3 className="text-[11px] font-bold text-blue-700 uppercase tracking-widest mb-1">Số dư hiện tại</h3>
-          <p className="text-2xl font-bold text-slate-900 tracking-tight">{formatCurrency(bankAccount.currentBalance)}</p>
-          <p className="text-[10px] font-medium text-blue-600 mt-2">Chưa tính lãi tạm tính</p>
+          <p className="text-2xl font-bold text-slate-900 tracking-tight">{formatCurrency(bankAccount.currentBalance + pendingData.interest)}</p>
+          <p className="text-[10px] font-medium text-blue-600 mt-2">Đã bao gồm lãi tạm tính</p>
         </GlassCard>
 
 
