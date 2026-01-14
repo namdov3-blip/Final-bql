@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import connectDB from '../../../lib/mongodb';
-import { BankTransaction, User } from '../../../lib/models';
+import { BankTransaction, Settings, AuditLog, User } from '../../../lib/models';
 import { authMiddleware } from '../../../lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
