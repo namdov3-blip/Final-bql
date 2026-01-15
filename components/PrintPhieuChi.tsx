@@ -25,12 +25,21 @@ export const PrintPhieuChi: React.FC<PrintPhieuChiProps> = ({
 
     // Calculate amounts
     const baseDate = transaction.effectiveInterestDate || project?.interestStartDate;
-    const interest = calculateInterest(transaction.compensation.totalApproved, interestRate, baseDate, new Date());
+
+    // If disbursed, interest is fixed based on disbursementDate. 
+    // If not, अस्थायी (temporary) calculation until today.
+    const interestEndDate = transaction.disbursementDate ? new Date(transaction.disbursementDate) : new Date();
+    const interest = calculateInterest(transaction.compensation.totalApproved, interestRate, baseDate, interestEndDate);
+
     const supplementary = transaction.supplementaryAmount || 0;
     const totalAmount = transaction.compensation.totalApproved + interest + supplementary;
 
-    // Format for display
-    const amountFormatted = formatCurrency(totalAmount).replace('₫', '').trim();
+    // Formatted strings for details
+    const approvedFormatted = formatCurrency(transaction.compensation.totalApproved);
+    const interestFormatted = formatCurrency(interest);
+    const supplementaryFormatted = formatCurrency(supplementary);
+    const totalFormatted = formatCurrency(totalAmount);
+
     const amountWords = formatCurrencyToWords(totalAmount);
     const today = new Date().toISOString();
 
@@ -148,10 +157,26 @@ export const PrintPhieuChi: React.FC<PrintPhieuChiProps> = ({
                     <p className="italic text-sm">{formatDateForPrint(today)}</p>
                     <p className="text-sm">Số:……</p>
                 </div>
-                <div className="border-2 border-black border-l-0 p-4 min-w-[180px]">
-                    <p className="text-sm mb-1">Quyển số:</p>
-                    <p className="text-sm mb-1">Nợ: <span className="font-bold ml-2">{amountFormatted}</span></p>
-                    <p className="text-sm">Có: <span className="font-bold ml-2">{amountFormatted}</span></p>
+                <div className="border-2 border-black border-l-0 p-4 min-w-[220px]">
+                    <p className="text-sm mb-1">Quyển số: .........</p>
+                    <div className="space-y-1 mt-2">
+                        <div className="flex justify-between text-xs">
+                            <span>- Tiền phê duyệt:</span>
+                            <span className="font-bold">{approvedFormatted}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                            <span>- Lãi ({interestRate}%):</span>
+                            <span className="font-bold">{interestFormatted}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                            <span>- Tiền bổ sung:</span>
+                            <span className="font-bold">{supplementaryFormatted}</span>
+                        </div>
+                        <div className="flex justify-between text-sm border-t border-black pt-1 mt-1">
+                            <span className="font-bold">TỔNG CỘNG:</span>
+                            <span className="font-bold text-red-600">{totalFormatted}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -181,7 +206,7 @@ export const PrintPhieuChi: React.FC<PrintPhieuChiProps> = ({
             {/* Amount */}
             <div className="mb-4 space-y-1">
                 <p className="text-sm">
-                    Số tiền: <span className="font-bold">{amountFormatted}</span> đồng
+                    Số tiền: <span className="font-bold">{totalFormatted}</span> đồng
                 </p>
                 <p className="text-sm italic">
                     (Viết bằng chữ): <span className="capitalize">{amountWords.toLowerCase()} ./.</span>
@@ -192,7 +217,7 @@ export const PrintPhieuChi: React.FC<PrintPhieuChiProps> = ({
             {/* Confirmation Section */}
             <div className="mb-6 border-t border-black pt-4">
                 <p className="font-bold mb-2">Đã nhận đủ số tiền</p>
-                <p className="text-sm mb-1">- Bằng số: <span className="font-bold">{amountFormatted}</span> đồng</p>
+                <p className="text-sm mb-1">- Bằng số: <span className="font-bold">{totalFormatted}</span> đồng</p>
                 <p className="text-sm">- Bằng chữ: <span className="capitalize">{amountWords.toLowerCase()}</span></p>
             </div>
 

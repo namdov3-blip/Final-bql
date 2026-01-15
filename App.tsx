@@ -218,7 +218,7 @@ const App: React.FC = () => {
   // Handle refund via API
   const handleRefundTransaction = async (id: string, refundedAmount: number) => {
     try {
-      await api.transactions.refund(id, currentUser?.name || 'Unknown');
+      await api.transactions.refund(id, currentUser?.name || 'Unknown', refundedAmount);
       // Reload transactions and bank data
       const [txRes, balanceRes, bankTxRes] = await Promise.all([
         api.transactions.list(),
@@ -453,9 +453,8 @@ const App: React.FC = () => {
         {selectedTransaction && (
           <TransactionModal
             transaction={selectedTransaction}
+            project={projects.find(p => p.id === selectedTransaction.projectId || (p as any)._id === selectedTransaction.projectId)}
             interestRate={interestRate}
-            projectCode={projects.find(p => p.id === selectedTransaction.projectId)?.code}
-            interestStartDate={projects.find(p => p.id === selectedTransaction.projectId)?.interestStartDate}
             onClose={() => setSelectedTransaction(null)}
             onStatusChange={handleStatusChange}
             onRefund={handleRefundTransaction}

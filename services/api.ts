@@ -94,9 +94,9 @@ export const transactionsAPI = {
             body: JSON.stringify({ status, actor, disbursementDate: date })
         }),
 
-    refund: (id: string, actor: string) => fetchAPI<{ data: any }>(`/transactions/${id}/refund`, {
+    refund: (id: string, actor: string, refundedAmount: number) => fetchAPI<{ data: any }>(`/transactions/${id}/refund`, {
         method: 'POST',
-        body: JSON.stringify({ actor })
+        body: JSON.stringify({ actor, refundedAmount })
     }),
 
     getQR: (id: string) => fetchAPI<{ qrDataUrl: string; url: string }>(`/transactions/${id}/qr?format=json`),

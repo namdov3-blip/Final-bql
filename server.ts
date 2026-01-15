@@ -89,11 +89,11 @@ app.put('/api/transactions/:id', (req, res) => {
 });
 app.put('/api/transactions/:id/status', (req, res) => {
     req.query = { ...req.query, id: req.params.id };
-    handle(req, res, './backend/handlers/transactions/[id]/status');
+    handle(req, res, './backend/handlers/transactions/update-status');
 });
 app.post('/api/transactions/:id/refund', (req, res) => {
     req.query = { ...req.query, id: req.params.id };
-    handle(req, res, './backend/handlers/transactions/[id]/refund');
+    handle(req, res, './backend/handlers/transactions/refund');
 });
 app.get('/api/transactions/:id/qr', (req, res) => {
     req.query = { ...req.query, id: req.params.id };

@@ -10,9 +10,8 @@ import { api } from '../services/api';
 
 interface TransactionModalProps {
   transaction: Transaction | null;
+  project?: Project;
   interestRate: number;
-  projectCode?: string;
-  interestStartDate?: string; // Ngày GN của dự án (Mốc tính lãi)
   onClose: () => void;
   onStatusChange: (id: string, status: TransactionStatus) => void;
   onRefund: (id: string, refundedAmount: number) => void;
@@ -24,9 +23,8 @@ interface TransactionModalProps {
 
 export const TransactionModal: React.FC<TransactionModalProps> = ({
   transaction,
+  project,
   interestRate,
-  projectCode,
-  interestStartDate,
   onClose,
   onStatusChange,
   onRefund,
@@ -63,7 +61,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
   // Tính lãi
   // Prioritize specific transaction interest date (e.g. refund date) over project default
-  const baseDate = transaction.effectiveInterestDate || interestStartDate;
+  const baseDate = transaction.effectiveInterestDate || project?.interestStartDate;
 
   let interest = 0;
   let calcEndDate = new Date();
@@ -377,13 +375,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   {isEditingDetails && editedTransaction ? (
                     <input
                       type="text"
-                      value={projectCode || editedTransaction.projectId}
+                      value={project?.code || editedTransaction.projectId}
                       onChange={(e) => setEditedTransaction({ ...editedTransaction, projectId: e.target.value })}
                       className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded text-sm font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   ) : (
-                    <p className="text-sm font-bold text-slate-900 truncate" title={projectCode || transaction.projectId}>
-                      {projectCode || transaction.projectId}
+                    <p className="text-sm font-bold text-slate-900 truncate" title={project?.code || transaction.projectId}>
+                      {project?.code || transaction.projectId}
                     </p>
                   )}
                 </div>
@@ -566,11 +564,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         </div>
       </GlassCard>
 
-      {/* Unified Print Preview Modal */}
       {showPrintPreview && (
         <PrintPhieuChi
           transaction={transaction}
-          project={undefined} // Re-calculate or pass correctly if needed
+          project={project}
           interestRate={interestRate}
           currentUser={currentUser}
           onClose={() => setShowPrintPreview(false)}
