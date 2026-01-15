@@ -41,7 +41,8 @@ export const PrintPhieuChi: React.FC<PrintPhieuChiProps> = ({
     const totalFormatted = formatCurrency(totalAmount);
 
     const amountWords = formatCurrencyToWords(totalAmount);
-    const today = new Date().toISOString();
+    // Use disbursement date if available, otherwise use today's date
+    const printDate = transaction.disbursementDate || new Date().toISOString();
 
     useEffect(() => {
         // Fetch secure QR code from API
@@ -154,7 +155,7 @@ export const PrintPhieuChi: React.FC<PrintPhieuChiProps> = ({
             <div className="flex mb-6">
                 <div className="flex-1 border-2 border-black p-4 text-center">
                     <h1 className="text-2xl font-bold mb-2">PHIẾU CHI</h1>
-                    <p className="italic text-sm">{formatDateForPrint(today)}</p>
+                    <p className="italic text-sm">{formatDateForPrint(printDate)}</p>
                     <p className="text-sm">Số:……</p>
                 </div>
                 <div className="border-2 border-black border-l-0 p-4 min-w-[220px]">
@@ -238,7 +239,7 @@ export const PrintPhieuChi: React.FC<PrintPhieuChiProps> = ({
                         <p className="text-sm font-semibold"></p>
                     </div>
                     <div className="text-center">
-                        <p className="italic text-xs mb-1">{formatDateForPrint(today)}</p>
+                        <p className="italic text-xs mb-1">{formatDateForPrint(printDate)}</p>
                         <p className="font-bold text-sm">Người nhận tiền</p>
                         <p className="text-xs italic">(Ký, họ tên)</p>
                         <div className="h-16"></div>

@@ -53,26 +53,33 @@ function parseVietnameseNumber(val: any): number {
     return parseFloat(s) || 0;
 }
 
-// Parse Excel date
-function parseExcelDate(value: any): Date {
-    if (!value) return new Date();
+// Parse Excel date and return DD/MM/YYYY formatted string
+function parseExcelDate(value: any): string {
+    if (!value) return '';
+
+    let date: Date;
 
     if (typeof value === 'number') {
         // Excel serial date
         const excelEpoch = new Date(1899, 11, 30);
-        return new Date(excelEpoch.getTime() + value * 86400000);
-    }
-
-    if (typeof value === 'string') {
-        // Try DD/MM/YYYY format
+        date = new Date(excelEpoch.getTime() + value * 86400000);
+    } else if (typeof value === 'string') {
+        // Try DD/MM/YYYY format first
         const parts = value.split('/');
         if (parts.length === 3) {
-            return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+        } else {
+            date = new Date(value);
         }
-        return new Date(value);
+    } else {
+        date = new Date();
     }
 
-    return new Date();
+    // Format as DD/MM/YYYY
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

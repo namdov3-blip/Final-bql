@@ -429,16 +429,16 @@ const App: React.FC = () => {
     );
   }
 
+  const confirmTransactionId = getConfirmId();
+
+  // Show confirm page - accessible without login for public QR verification
+  if (confirmTransactionId) {
+    return <ConfirmPage transactionId={confirmTransactionId} currentUser={currentUser || { id: 'guest', name: 'Khách', role: 'User1' as const, permissions: [], avatar: '' }} />;
+  }
+
   // Show login page if not logged in
   if (!currentUser) {
     return <Login onLogin={handleLogin} />;
-  }
-
-  const confirmTransactionId = getConfirmId();
-
-  // Show confirm page - now only if logged in
-  if (confirmTransactionId) {
-    return <ConfirmPage transactionId={confirmTransactionId} currentUser={currentUser} />;
   }
 
   return (

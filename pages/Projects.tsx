@@ -465,12 +465,25 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
                     Ngày GN & Tính lãi <Edit2 size={10} className="text-slate-400" />
                   </label>
                   <input
-                    type="date"
-                    value={previewData.project.interestStartDate ? (typeof previewData.project.interestStartDate === 'string' ? previewData.project.interestStartDate.split('T')[0] : new Date(previewData.project.interestStartDate).toISOString().split('T')[0]) : ''}
+                    type="text"
+                    value={previewData.project.interestStartDate ? (() => {
+                      const d = typeof previewData.project.interestStartDate === 'string'
+                        ? new Date(previewData.project.interestStartDate)
+                        : new Date(previewData.project.interestStartDate);
+                      const day = String(d.getDate()).padStart(2, '0');
+                      const month = String(d.getMonth() + 1).padStart(2, '0');
+                      const year = d.getFullYear();
+                      return `${day}/${month}/${year}`;
+                    })() : ''}
                     onChange={(e) => {
-                      const newDate = e.target.value;
-                      handleProjectInfoChange('interestStartDate', newDate);
+                      // Parse DD/MM/YYYY to Date
+                      const parts = e.target.value.split('/');
+                      if (parts.length === 3) {
+                        const newDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                        handleProjectInfoChange('interestStartDate', newDate.toISOString());
+                      }
                     }}
+                    placeholder="DD/MM/YYYY"
                     className="w-full bg-white border border-slate-200 rounded px-2 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all shadow-sm"
                   />
                 </div>
