@@ -114,6 +114,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             });
 
             transaction.disbursementDate = now;
+            transaction.disbursedTotal = totalFinal; // Store the exact amount for refund
             transaction.history.push({
                 timestamp: now,
                 action: 'Xác nhận chi trả',

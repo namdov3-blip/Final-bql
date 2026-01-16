@@ -68,13 +68,18 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   let calcEndDate = new Date();
   let storedDisbursedTotal = 0;
 
-  // For disbursed transactions, try to get the stored totalAmount from history to avoid recalculation differences
-  if (isDisbursed && transaction.history) {
-    const disbursementEntry = [...transaction.history].reverse().find(
-      (h: any) => h.action?.includes('Xác nhận') || h.action?.includes('chi trả')
-    );
-    if (disbursementEntry?.totalAmount) {
-      storedDisbursedTotal = disbursementEntry.totalAmount;
+  // For disbursed transactions, use the stored disbursedTotal field (most reliable)
+  // or fall back to history entry
+  if (isDisbursed) {
+    if ((transaction as any).disbursedTotal) {
+      storedDisbursedTotal = (transaction as any).disbursedTotal;
+    } else if (transaction.history) {
+      const disbursementEntry = [...transaction.history].reverse().find(
+        (h: any) => h.action?.includes('Xác nhận') || h.action?.includes('chi trả')
+      );
+      if (disbursementEntry?.totalAmount) {
+        storedDisbursedTotal = disbursementEntry.totalAmount;
+      }
     }
   }
 
