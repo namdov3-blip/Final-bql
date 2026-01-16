@@ -53,29 +53,31 @@ function parseVietnameseNumber(val: any): number {
     return parseFloat(s) || 0;
 }
 
-// Parse Excel date and return DD/MM/YYYY formatted string
-function parseExcelDate(value: any): string {
-    if (!value) return '';
-
-    let date: Date;
+// Parse Excel date and return Date object (for database)
+function parseExcelDateToDate(value: any): Date {
+    if (!value) return new Date();
 
     if (typeof value === 'number') {
         // Excel serial date
         const excelEpoch = new Date(1899, 11, 30);
-        date = new Date(excelEpoch.getTime() + value * 86400000);
+        return new Date(excelEpoch.getTime() + value * 86400000);
     } else if (typeof value === 'string') {
         // Try DD/MM/YYYY format first
         const parts = value.split('/');
         if (parts.length === 3) {
-            date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-        } else {
-            date = new Date(value);
+            return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
         }
-    } else {
-        date = new Date();
+        return new Date(value);
     }
 
-    // Format as DD/MM/YYYY
+    return new Date();
+}
+
+// Format date as DD/MM/YYYY string (for display)
+function formatDateDDMMYYYY(value: any): string {
+    if (!value) return '';
+
+    const date = parseExcelDateToDate(value);
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
@@ -201,7 +203,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         cccd: '',
                         maHo: row[10]?.toString() || `HO-${i}`,
                         qd: row[5]?.toString().trim() || '',
-                        date: parseExcelDate(row[6]),
+                        date: formatDateDDMMYYYY(row[6]), // For display in preview
+                        dateObj: parseExcelDateToDate(row[6]), // For database storage
                         projectCode: row[8]?.toString().trim() || '',
                         projectName: projectName || '',
                         paymentType: row[9]?.toString() || '',
@@ -252,7 +255,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         landOrigin: '',
                         landArea: 0,
                         decisionNumber: row.qd || '',
-                        decisionDate: row.date
+                        decisionDate: row.dateObj || new Date() // Use Date object for database
                     },
                     compensation: {
                         landAmount: 0,
