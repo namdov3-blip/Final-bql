@@ -32,9 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        const payloadAuth = await authMiddleware(req, res);
-        if (!payloadAuth) return;
-
+        // No auth required for QR verification - public access allowed
         await connectDB();
 
         const token = req.query.token || req.query.id || (req as any).params?.token;

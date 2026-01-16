@@ -41,8 +41,8 @@ export const PrintPhieuChi: React.FC<PrintPhieuChiProps> = ({
     const totalFormatted = formatCurrency(totalAmount);
 
     const amountWords = formatCurrencyToWords(totalAmount);
-    // Use disbursement date if available, otherwise use today's date
-    const printDate = transaction.disbursementDate || new Date().toISOString();
+    // Use interest start date (baseDate) for print date
+    const printDate = baseDate ? new Date(baseDate).toISOString() : new Date().toISOString();
 
     useEffect(() => {
         // Fetch secure QR code from API

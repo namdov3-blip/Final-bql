@@ -78,8 +78,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const supplementary = transaction.supplementaryAmount || 0;
   const totalAmount = transaction.compensation.totalApproved + interest + supplementary;
 
-  // Display start date for interest logic
-  const displayStartDate = baseDate ? new Date(new Date(baseDate).getTime() + 86400000) : null;
+  // Display start date for interest logic (use baseDate directly without offset)
+  const displayStartDate = baseDate ? new Date(baseDate) : null;
 
   const handleConfirmPayment = () => {
     if (!isDisbursed) {

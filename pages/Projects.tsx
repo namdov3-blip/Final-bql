@@ -23,6 +23,7 @@ interface PreviewData {
 
 export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, interestRate = 0, onImport, onUpdateProject, onViewDetails, onDeleteProject }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
 
@@ -464,28 +465,41 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
                   <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1 flex items-center gap-1">
                     Ngày GN & Tính lãi <Edit2 size={10} className="text-slate-400" />
                   </label>
-                  <input
-                    type="text"
-                    value={previewData.project.interestStartDate ? (() => {
-                      const d = typeof previewData.project.interestStartDate === 'string'
-                        ? new Date(previewData.project.interestStartDate)
-                        : new Date(previewData.project.interestStartDate);
-                      const day = String(d.getDate()).padStart(2, '0');
-                      const month = String(d.getMonth() + 1).padStart(2, '0');
-                      const year = d.getFullYear();
-                      return `${day}/${month}/${year}`;
-                    })() : ''}
-                    onChange={(e) => {
-                      // Parse DD/MM/YYYY to Date
-                      const parts = e.target.value.split('/');
-                      if (parts.length === 3) {
-                        const newDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-                        handleProjectInfoChange('interestStartDate', newDate.toISOString());
-                      }
-                    }}
-                    placeholder="DD/MM/YYYY"
-                    className="w-full bg-white border border-slate-200 rounded px-2 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all shadow-sm"
-                  />
+                  <div className="relative flex">
+                    <input
+                      type="text"
+                      readOnly
+                      value={previewData.project.interestStartDate ? (() => {
+                        const d = typeof previewData.project.interestStartDate === 'string'
+                          ? new Date(previewData.project.interestStartDate)
+                          : new Date(previewData.project.interestStartDate);
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const year = d.getFullYear();
+                        return `${day}/${month}/${year}`;
+                      })() : ''}
+                      placeholder="DD/MM/YYYY"
+                      className="flex-1 bg-white border border-slate-200 rounded-l px-2 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all shadow-sm cursor-pointer"
+                      onClick={() => { if (dateInputRef.current?.showPicker) { dateInputRef.current.showPicker(); } else { dateInputRef.current?.click(); } }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { if (dateInputRef.current?.showPicker) { dateInputRef.current.showPicker(); } else { dateInputRef.current?.click(); } }}
+                      className="flex items-center justify-center px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-r cursor-pointer transition-colors"
+                    >
+                      <Calendar size={14} />
+                    </button>
+                    <input
+                      ref={dateInputRef}
+                      type="date"
+                      value={previewData.project.interestStartDate ? (typeof previewData.project.interestStartDate === 'string' ? previewData.project.interestStartDate.split('T')[0] : new Date(previewData.project.interestStartDate).toISOString().split('T')[0]) : ''}
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        handleProjectInfoChange('interestStartDate', newDate);
+                      }}
+                      className="absolute top-0 left-0 opacity-0 w-full h-full pointer-events-none"
+                    />
+                  </div>
                 </div>
                 <div className="sm:col-span-1">
                   <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Tổng ngân sách</label>
