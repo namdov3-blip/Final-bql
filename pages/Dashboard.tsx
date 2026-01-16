@@ -78,6 +78,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
     const baseDate = t.effectiveInterestDate || project?.interestStartDate;
     const interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
     const supplementary = t.supplementaryAmount || 0;
+
+    // DEBUG: Log each pending transaction calculation
+    console.log('=== DASHBOARD PENDING CALC ===');
+    console.log('Transaction ID:', t.id);
+    console.log('t.effectiveInterestDate:', t.effectiveInterestDate);
+    console.log('project?.interestStartDate:', project?.interestStartDate);
+    console.log('baseDate (used):', baseDate);
+    console.log('t.compensation.totalApproved:', t.compensation.totalApproved);
+    console.log('interest (calculated):', interest);
+    console.log('supplementary:', supplementary);
+    console.log('Transaction total:', t.compensation.totalApproved + interest + supplementary);
+    console.log('==============================');
+
     return acc + t.compensation.totalApproved + interest + supplementary;
   }, 0);
 
