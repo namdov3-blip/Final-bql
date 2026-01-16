@@ -56,6 +56,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const openingBalance = settings?.bankOpeningBalance || 0;
         const currentBalance = lastBankTx?.runningBalance || openingBalance;
 
+        // DEBUG: Log all values for troubleshooting
+        console.log('=== BACKEND REFUND DEBUG ===');
+        console.log('transaction._id:', transaction._id);
+        console.log('refundedAmount (received from frontend):', refundedAmount);
+        console.log('transaction.compensation.totalApproved (before update):', transaction.compensation.totalApproved);
+        console.log('transaction.disbursedTotal:', transaction.disbursedTotal);
+        console.log('currentBalance:', currentBalance);
+        console.log('newBalance (after deposit):', currentBalance + refundedAmount);
+        console.log('organization:', org);
+        console.log('==============================');
+
         // Create deposit (refund)
         await (BankTransaction as any).create({
             type: 'Nạp tiền',
