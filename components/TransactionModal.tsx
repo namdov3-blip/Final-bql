@@ -63,8 +63,20 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   // Prioritize specific transaction interest date (e.g. refund date) over project default
   const baseDate = transaction.effectiveInterestDate || project?.interestStartDate;
 
+
   let interest = 0;
   let calcEndDate = new Date();
+  let storedDisbursedTotal = 0;
+
+  // For disbursed transactions, try to get the stored totalAmount from history to avoid recalculation differences
+  if (isDisbursed && transaction.history) {
+    const disbursementEntry = [...transaction.history].reverse().find(
+      (h: any) => h.action?.includes('Xác nhận') || h.action?.includes('chi trả')
+    );
+    if (disbursementEntry?.totalAmount) {
+      storedDisbursedTotal = disbursementEntry.totalAmount;
+    }
+  }
 
   if (isDisbursed && transaction.disbursementDate) {
     calcEndDate = new Date(transaction.disbursementDate);
@@ -76,7 +88,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   }
 
   const supplementary = transaction.supplementaryAmount || 0;
-  const totalAmount = transaction.compensation.totalApproved + interest + supplementary;
+  // For disbursed transactions, prefer stored amount to avoid timezone calculation differences
+  const calculatedTotal = transaction.compensation.totalApproved + interest + supplementary;
+  const totalAmount = (isDisbursed && storedDisbursedTotal > 0) ? storedDisbursedTotal : calculatedTotal;
 
   // Display start date for interest logic (use baseDate directly without offset)
   const displayStartDate = baseDate ? new Date(baseDate) : null;
