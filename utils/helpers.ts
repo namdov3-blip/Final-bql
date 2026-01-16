@@ -24,12 +24,9 @@ export const parseNumberFromComma = (value: string): number => {
 export const calculateInterest = (principal: number, ratePerYear: number, baseDateStr?: any, endDate: Date = new Date()): number => {
   if (!baseDateStr) return 0;
 
-  // Quy tắc mới:
+  // Quy tắc:
   // - Bắt đầu đếm từ chính "Ngày GN" (baseDate) lúc 00:00.
   // - Mỗi lần qua thêm 1 mốc 00:00 tiếp theo thì cộng thêm 1 ngày lãi.
-  //   Ví dụ:
-  //   + baseDate = 11/01, endDate = 13/01 => 2 ngày (đêm 11-12, đêm 12-13)
-  //   + baseDate = 11/01, endDate = 14/01 => 3 ngày (qua 3 mốc 00:00 sau baseDate).
 
   // Handle different date input types
   let baseDate: Date;
@@ -45,12 +42,21 @@ export const calculateInterest = (principal: number, ratePerYear: number, baseDa
   // Validate baseDate
   if (isNaN(baseDate.getTime())) return 0;
 
-  // Reset giờ về 00:00:00 để tính chênh lệch ngày chính xác
-  baseDate.setHours(0, 0, 0, 0);
-  const end = new Date(endDate);
-  end.setHours(0, 0, 0, 0);
+  // Dùng Vietnam timezone (UTC+7) để tính ngày giống backend
+  const getVNZeroHour = (dateInput: Date) => {
+    const d = new Date(dateInput);
+    // Offset by 7 hours for Vietnam
+    const vnTime = new Date(d.getTime() + (7 * 60 * 60 * 1000));
+    const vnDate = vnTime.getUTCDate();
+    const vnMonth = vnTime.getUTCMonth();
+    const vnYear = vnTime.getUTCFullYear();
+    return new Date(Date.UTC(vnYear, vnMonth, vnDate, 0, 0, 0, 0));
+  };
 
-  const timeDiff = end.getTime() - baseDate.getTime();
+  const startVN = getVNZeroHour(baseDate);
+  const endVN = getVNZeroHour(endDate);
+
+  const timeDiff = endVN.getTime() - startVN.getTime();
   const days = Math.floor(timeDiff / (1000 * 3600 * 24));
 
   // Nếu chưa qua mốc 00:00 nào sau baseDate thì chưa có lãi
