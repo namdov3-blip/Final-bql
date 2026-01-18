@@ -86,17 +86,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   }
 
   // Calculate interest based on transaction status
-  if (isDisbursed && storedDisbursedTotal > 0) {
-    // For disbursed transactions with stored total: extract interest from stored total
-    // This ensures we show the actual interest that was paid, not a recalculated value
-    interest = storedDisbursedTotal - transaction.compensation.totalApproved - supplementary;
-    calcEndDate = transaction.disbursementDate ? new Date(transaction.disbursementDate) : new Date();
-  } else if (isDisbursed && transaction.disbursementDate) {
-    // Fallback: calculate if no storedTotal available
+  // Match TransactionList logic: always recalculate for consistency
+  if (isDisbursed && transaction.disbursementDate) {
+    // CASE 1: Đã giải ngân -> Lãi tính đến ngày thực tế chi trả (đóng băng)
     calcEndDate = new Date(transaction.disbursementDate);
     interest = calculateInterest(transaction.compensation.totalApproved, interestRate, baseDate, calcEndDate);
   } else if (!isDisbursed) {
-    // Chưa giải ngân (bao gồm PENDING & HOLD): lãi tạm tính đến hôm nay
+    // CASE 2: Chưa giải ngân (bao gồm PENDING & HOLD) -> Lãi tính đến hiện tại (tiếp tục chạy)
     calcEndDate = new Date();
     interest = calculateInterest(transaction.compensation.totalApproved, interestRate, baseDate, calcEndDate);
   }
