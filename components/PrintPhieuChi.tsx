@@ -73,10 +73,10 @@ export const PrintPhieuChi: React.FC<PrintPhieuChiProps> = ({
         const org = currentUser.organization || 'Đông Anh';
         const headers: Record<string, { name: string; address: string }> = {
             'Đông Anh': { name: 'UBND xã Đông Anh', address: 'Số 68 đường Cao Lỗ, xã Đông Anh, Hà Nội' },
-            'Phúc Thịnh': { name: 'UBND xã Phúc Thịnh', address: 'Thôn Phúc Thịnh, Hà Nội' },
-            'Thiên Lộc': { name: 'UBND xã Thiên Lộc', address: 'Thôn Thiên Lộc, Hà Nội' },
-            'Thư Lâm': { name: 'UBND xã Thư Lâm', address: 'Thôn Thư Lâm, Hà Nội' },
-            'Vĩnh Thanh': { name: 'UBND xã Vĩnh Thanh', address: 'Thôn Vĩnh Thanh, Hà Nội' }
+            'Phúc Thịnh': { name: 'UBND xã Phúc Thịnh', address: 'Xã Phúc Thịnh, Hà Nội' },
+            'Thiên Lộc': { name: 'UBND xã Thiên Lộc', address: 'Xã Thiên Lộc, Hà Nội' },
+            'Thư Lâm': { name: 'UBND xã Thư Lâm', address: 'Xã Thư Lâm, Hà Nội' },
+            'Vĩnh Thanh': { name: 'UBND xã Vĩnh Thanh', address: ' Vĩnh Thanh, Hà Nội' }
         };
         return headers[org] || headers['Đông Anh'];
     };
@@ -189,7 +189,7 @@ export const PrintPhieuChi: React.FC<PrintPhieuChiProps> = ({
                 </p>
                 <p className="text-sm">
                     Địa chỉ: <span className="border-b border-dotted border-black inline-block min-w-[400px]">
-                        {transaction.household.address || '...........................................................'}
+                        {transaction.household.address || ''}
                     </span>
                 </p>
             </div>
@@ -236,7 +236,7 @@ export const PrintPhieuChi: React.FC<PrintPhieuChiProps> = ({
                         <p className="font-bold text-sm">Thủ quỹ</p>
                         <p className="text-xs italic">(Ký, họ tên)</p>
                         <div className="h-16"></div>
-                        <p className="text-sm font-semibold"></p>
+                        <p className="text-sm font-semibold">Nguyễn Hương Ly</p>
                     </div>
                     <div className="text-center">
                         <p className="italic text-xs mb-1">{formatDateForPrint(printDate)}</p>
