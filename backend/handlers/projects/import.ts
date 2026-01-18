@@ -205,8 +205,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         qd: row[5]?.toString().trim() || '',
                         date: formatDateDDMMYYYY(row[6]), // For display in preview
                         dateObj: parseExcelDateToDate(row[6]), // For database storage
-                        projectCode: row[8]?.toString().trim() || '',
-                        projectName: projectName || '',
+                        projectName: row[7]?.toString().trim() || '', // Column H - Tên dự án
+                        projectCode: row[8]?.toString().trim() || '', // Column I - Mã dự án
                         paymentType: row[9]?.toString() || '',
                         amount,
                         stt: row[0]?.toString() || (i - 3).toString()
@@ -221,15 +221,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(400).json({ error: 'Không tìm thấy dữ liệu hợp lệ trong file' });
         }
 
-        // Auto-generate project code (timestamp-based unique ID)
-        const baseProjectCode = projectCode || `DA${Date.now()}`;
-        const baseProjectName = projectName || `Dự án ${baseProjectCode}`;
+        // Get project code and name from first row of Excel data (if available)
+        const firstRowProjectCode = transactionsData[0]?.projectCode;
+        const firstRowProjectName = transactionsData[0]?.projectName;
+
+        // Priority: Excel file data > Form input > Auto-generate
+        const baseProjectCode = firstRowProjectCode || projectCode || `DA${Date.now()}`;
+        const baseProjectName = firstRowProjectName || projectName || `Dự án ${baseProjectCode}`;
 
         const previewResult = {
             project: {
                 code: baseProjectCode,
                 name: baseProjectName,
-                location: location || 'Chưa xác định',
+                location: location || '',
                 totalBudget,
                 interestStartDate: interestStartDate ? new Date(interestStartDate) : new Date(),
                 status: 'Active'
@@ -251,7 +255,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         id: row.maHo || `HO-${index}`,
                         name: row.name,
                         cccd: row.cccd || '',
-                        address: location || 'Chưa xác định',
+                        address: location || '',
                         landOrigin: '',
                         landArea: 0,
                         decisionNumber: row.qd || '',
@@ -282,27 +286,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const createdBankTxs: any[] = [];
 
         try {
-            let project = await (Project as any).findOne({ code: baseProjectCode, organization: currentUser.organization });
-            if (!project) {
-                project = await (Project as any).create({
-                    code: baseProjectCode,
-                    name: baseProjectName,
-                    location: (location || 'Chưa xác định').trim(),
-                    totalBudget: totalBudget,
-                    interestStartDate: previewResult.project.interestStartDate,
-                    uploadDate: new Date(),
-                    startDate: new Date(),
-                    status: 'Active',
-                    organization: currentUser.organization,
-                    uploadedBy: currentUser._id,
-                    updatedAt: new Date()
+            // Check if project code already exists - reject import if duplicate
+            const existingProject = await (Project as any).findOne({ code: baseProjectCode, organization: currentUser.organization });
+            if (existingProject) {
+                return res.status(409).json({
+                    error: `Mã dự án "${baseProjectCode}" đã tồn tại. Vui lòng sử dụng mã khác hoặc xóa dự án cũ trước khi import.`
                 });
-                createdProjects.push(project);
-            } else {
-                project.totalBudget = (project.totalBudget || 0) + totalBudget;
-                project.updatedAt = new Date();
-                await project.save();
             }
+
+            // Create new project
+            const project = await (Project as any).create({
+                code: baseProjectCode,
+                name: baseProjectName,
+                location: (location || '').trim(),
+                totalBudget: totalBudget,
+                interestStartDate: previewResult.project.interestStartDate,
+                uploadDate: new Date(),
+                startDate: new Date(),
+                status: 'Active',
+                organization: currentUser.organization,
+                uploadedBy: currentUser._id,
+                updatedAt: new Date()
+            });
+            createdProjects.push(project);
 
             const lastBankTx = await (BankTransaction as any).findOne({ organization: currentUser.organization }).sort({ _id: -1 });
             const currentBalance = lastBankTx?.runningBalance || 0;
