@@ -68,6 +68,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   let calcEndDate = new Date();
   let storedDisbursedTotal = 0;
 
+  const supplementary = transaction.supplementaryAmount || 0;
+
   // For disbursed transactions, use the stored disbursedTotal field (most reliable)
   // or fall back to history entry
   if (isDisbursed) {
@@ -83,7 +85,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }
   }
 
-  if (isDisbursed && transaction.disbursementDate) {
+  // Calculate interest based on transaction status
+  if (isDisbursed && storedDisbursedTotal > 0) {
+    // For disbursed transactions with stored total: extract interest from stored total
+    // This ensures we show the actual interest that was paid, not a recalculated value
+    interest = storedDisbursedTotal - transaction.compensation.totalApproved - supplementary;
+    calcEndDate = transaction.disbursementDate ? new Date(transaction.disbursementDate) : new Date();
+  } else if (isDisbursed && transaction.disbursementDate) {
+    // Fallback: calculate if no storedTotal available
     calcEndDate = new Date(transaction.disbursementDate);
     interest = calculateInterest(transaction.compensation.totalApproved, interestRate, baseDate, calcEndDate);
   } else if (!isDisbursed) {
@@ -92,7 +101,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     interest = calculateInterest(transaction.compensation.totalApproved, interestRate, baseDate, calcEndDate);
   }
 
-  const supplementary = transaction.supplementaryAmount || 0;
   // For disbursed transactions, prefer stored amount to avoid timezone calculation differences
   const calculatedTotal = transaction.compensation.totalApproved + interest + supplementary;
   const totalAmount = (isDisbursed && storedDisbursedTotal > 0) ? storedDisbursedTotal : calculatedTotal;

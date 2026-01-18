@@ -102,9 +102,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
       if ((t as any).disbursedTotal) {
         // Extract interest from stored total: total - principal - supplementary
         const supplementary = t.supplementaryAmount || 0;
-        lockedInterest += (t as any).disbursedTotal - t.compensation.totalApproved - supplementary;
+        const extractedInterest = (t as any).disbursedTotal - t.compensation.totalApproved - supplementary;
+        lockedInterest += extractedInterest;
       } else {
-        lockedInterest += calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
+        const calculatedInterest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
+        lockedInterest += calculatedInterest;
       }
     } else if (t.status !== TransactionStatus.DISBURSED) {
       // Lãi tạm tính (chỉ từ các giao dịch chưa giải ngân)

@@ -61,8 +61,16 @@ export const BankBalance: React.FC<BankBalanceProps> = ({
       const baseDate = t.effectiveInterestDate || project?.interestStartDate;
 
       if (t.status === TransactionStatus.DISBURSED && t.disbursementDate) {
-        // Lãi đã chốt (không còn trong lãi tạm tính)
-        lockedInterest += calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
+        // Lãi đã chốt - prefer disbursedTotal for accuracy (matching Dashboard logic)
+        if ((t as any).disbursedTotal) {
+          // Extract interest from stored total: total - principal - supplementary
+          const supplementary = t.supplementaryAmount || 0;
+          const extractedInterest = (t as any).disbursedTotal - t.compensation.totalApproved - supplementary;
+          lockedInterest += extractedInterest;
+        } else {
+          const calculatedInterest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
+          lockedInterest += calculatedInterest;
+        }
       } else if (t.status !== TransactionStatus.DISBURSED) {
         // Tổng gốc của các giao dịch chưa giải ngân
         principal += t.compensation.totalApproved;
@@ -73,13 +81,16 @@ export const BankBalance: React.FC<BankBalanceProps> = ({
       }
     });
 
+    const finalLocked = Math.round(lockedInterest);
+    const finalInterest = Math.round(tempInterest);
+
     return {
       principal, // Tổng gốc chưa giải ngân
-      interest: Math.round(tempInterest), // Lãi tạm tính
-      locked: Math.round(lockedInterest), // Lãi đã chốt (để tham khảo)
+      interest: finalInterest, // Lãi tạm tính
+      locked: finalLocked, // Lãi đã chốt (để tham khảo)
       supplementary: supplementaryAmount // Tổng tiền bổ sung chưa giải ngân
     };
-  }, [transactions, projects, interestRate]);
+  }, [transactions, projects, interestRate, bankAccount.currentBalance]);
 
   const handleTxSubmit = () => {
     const amountNum = parseNumberFromComma(txAmount);
