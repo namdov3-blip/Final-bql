@@ -18,6 +18,13 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
     const data = await response.json();
 
     if (!response.ok) {
+        // Handle session expired (401 Unauthorized)
+        if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            window.location.href = '/login';
+            throw new Error('Session expired');
+        }
         throw new Error(data.error || 'API request failed');
     }
 

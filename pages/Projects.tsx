@@ -268,7 +268,7 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
                       </span>
                     </td>
                     <td className="px-4 py-3 border-r border-slate-200">
-                      <p className="text-slate-900 font-bold truncate max-w-[200px]" title={project.name}>{project.name}</p>
+                      <p className="text-slate-900 font-bold">{project.name}</p>
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-slate-800 border-r border-slate-200">
                       {formatCurrency(actualTotalBudget)}

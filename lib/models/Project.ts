@@ -20,7 +20,7 @@ export interface IProject extends Document {
 const ProjectSchema = new Schema<IProject>({
     code: { type: String, required: true, unique: true },
     name: { type: String, required: true },
-    location: { type: String, required: true },
+    location: { type: String, default: '' },
     totalBudget: { type: Number, required: true, default: 0 },
     startDate: { type: Date, default: Date.now },
     uploadDate: { type: Date, default: Date.now },
