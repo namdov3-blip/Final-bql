@@ -41,10 +41,18 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
   }, 0);
 
   // Tính tổng giá trị hiện tại (bao gồm lãi + tiền bổ sung)
+  // Match Dashboard logic: use disbursedTotal for DISBURSED transactions
   const totalValue = projects.reduce((acc, p) => {
     const projectTrans = transactions.filter(t => t.projectId === p.id);
     const actualTotal = projectTrans.reduce((sum, t) => {
       const supplementary = t.supplementaryAmount || 0;
+      
+      // For disbursed transactions: prefer disbursedTotal (matching Dashboard)
+      if (t.status === TransactionStatus.DISBURSED && (t as any).disbursedTotal) {
+        return sum + (t as any).disbursedTotal;
+      }
+      
+      // Fallback: calculate interest
       const baseDate = t.effectiveInterestDate || p.interestStartDate;
       let interest = 0;
       if (t.status === TransactionStatus.DISBURSED && t.disbursementDate) {
@@ -235,6 +243,11 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
                 const disbursed = projectTrans
                   .filter(t => t.status === TransactionStatus.DISBURSED)
                   .reduce((acc, t) => {
+                    // For disbursed transactions: prefer disbursedTotal (matching Dashboard)
+                    if ((t as any).disbursedTotal) {
+                      return acc + (t as any).disbursedTotal;
+                    }
+                    // Fallback: calculate interest
                     const supplementary = t.supplementaryAmount || 0;
                     const baseDate = t.effectiveInterestDate || project.interestStartDate || (project as any).startDate;
                     const interest = t.disbursementDate
@@ -244,7 +257,14 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, transactions, inte
                   }, 0);
 
                 // Tính tổng giá trị dự án thực tế (bao gồm tiền bổ sung + lãi phát sinh)
+                // Match Dashboard logic: use disbursedTotal for DISBURSED transactions
                 const actualTotalBudget = projectTrans.reduce((sum, t) => {
+                  // For disbursed transactions: prefer disbursedTotal (matching Dashboard)
+                  if (t.status === TransactionStatus.DISBURSED && (t as any).disbursedTotal) {
+                    return sum + (t as any).disbursedTotal;
+                  }
+                  
+                  // Fallback: calculate interest
                   const supplementary = t.supplementaryAmount || 0;
                   const baseDate = t.effectiveInterestDate || project.interestStartDate || (project as any).startDate;
                   let interest = 0;
