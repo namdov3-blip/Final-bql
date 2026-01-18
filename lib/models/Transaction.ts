@@ -36,6 +36,7 @@ export interface ITransaction extends Document {
     disbursementDate?: Date;
     effectiveInterestDate?: Date;
     supplementaryAmount?: number;
+    disbursedTotal?: number; // Exact amount disbursed (principal + interest + supplementary)
     notes?: string;
     history: ITransactionLog[];
     updatedAt: Date;
@@ -82,6 +83,7 @@ const TransactionSchema = new Schema<ITransaction>({
     disbursementDate: { type: Date },
     effectiveInterestDate: { type: Date },
     supplementaryAmount: { type: Number, default: 0 },
+    disbursedTotal: { type: Number }, // Stores exact amount disbursed for accurate refunds
     notes: { type: String },
     history: { type: [TransactionLogSchema], default: [] },
     stt: { type: String }

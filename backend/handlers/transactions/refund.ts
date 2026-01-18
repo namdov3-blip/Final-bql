@@ -56,17 +56,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const openingBalance = settings?.bankOpeningBalance || 0;
         const currentBalance = lastBankTx?.runningBalance || openingBalance;
 
-        // DEBUG: Log all values for troubleshooting
-        console.log('=== BACKEND REFUND DEBUG ===');
-        console.log('transaction._id:', transaction._id);
-        console.log('refundedAmount (received from frontend):', refundedAmount);
-        console.log('transaction.compensation.totalApproved (before update):', transaction.compensation.totalApproved);
-        console.log('transaction.disbursedTotal:', transaction.disbursedTotal);
-        console.log('currentBalance:', currentBalance);
-        console.log('newBalance (after deposit):', currentBalance + refundedAmount);
-        console.log('organization:', org);
-        console.log('==============================');
-
         // Create deposit (refund)
         await (BankTransaction as any).create({
             type: 'Nạp tiền',
@@ -81,8 +70,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // Update transaction
         transaction.status = 'Tồn đọng/Giữ hộ';
-        transaction.compensation.totalApproved = refundedAmount;
+        // FIX: Keep original principal (don't include old interest in totalApproved)
+        // refundedAmount may include interest from disbursedTotal, but totalApproved should only be principal
+        // transaction.compensation.totalApproved remains unchanged (stays as original principal)
         transaction.disbursementDate = undefined;
+        // Set effectiveInterestDate to now (matching agribank-crm approach)
+        // When calculateInterest uses setHours(0,0,0,0), this will normalize to today 00:00
+        // and ensure no interest is calculated for today (days = 0)
         transaction.effectiveInterestDate = now;
         transaction.supplementaryAmount = 0;
         transaction.supplementaryNote = undefined;
@@ -105,7 +99,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             details: `Hoàn lại ${formatCurrency(refundedAmount)} cho hộ ${transaction.household.name}`
         });
 
-        return res.status(200).json({ success: true, data: transaction });
+        // Reload transaction to ensure all fields are properly serialized
+        const updatedTransaction = await (Transaction as any).findById(id);
+        const transactionData = updatedTransaction.toObject ? updatedTransaction.toObject({ virtuals: true }) : updatedTransaction;
+
+        return res.status(200).json({ 
+            success: true, 
+            data: {
+                ...transactionData,
+                id: transactionData.id || transactionData._id?.toString()
+            }
+        });
 
     } catch (error: any) {
         console.error('Refund error:', error);

@@ -42,21 +42,13 @@ export const calculateInterest = (principal: number, ratePerYear: number, baseDa
   // Validate baseDate
   if (isNaN(baseDate.getTime())) return 0;
 
-  // Dùng Vietnam timezone (UTC+7) để tính ngày giống backend
-  const getVNZeroHour = (dateInput: Date) => {
-    const d = new Date(dateInput);
-    // Offset by 7 hours for Vietnam
-    const vnTime = new Date(d.getTime() + (7 * 60 * 60 * 1000));
-    const vnDate = vnTime.getUTCDate();
-    const vnMonth = vnTime.getUTCMonth();
-    const vnYear = vnTime.getUTCFullYear();
-    return new Date(Date.UTC(vnYear, vnMonth, vnDate, 0, 0, 0, 0));
-  };
+  // Reset giờ về 00:00:00 để tính chênh lệch ngày chính xác
+  // Simplified logic matching agribank-crm (no VN timezone handling)
+  baseDate.setHours(0, 0, 0, 0);
+  const end = new Date(endDate);
+  end.setHours(0, 0, 0, 0);
 
-  const startVN = getVNZeroHour(baseDate);
-  const endVN = getVNZeroHour(endDate);
-
-  const timeDiff = endVN.getTime() - startVN.getTime();
+  const timeDiff = end.getTime() - baseDate.getTime();
   const days = Math.floor(timeDiff / (1000 * 3600 * 24));
 
   // Nếu chưa qua mốc 00:00 nào sau baseDate thì chưa có lãi

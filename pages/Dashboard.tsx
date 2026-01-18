@@ -60,6 +60,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
   const statsDisbursedTrans = filteredTransactions.filter(t => t.status === TransactionStatus.DISBURSED);
 
   const statsDisbursedAmount = statsDisbursedTrans.reduce((acc, t) => {
+    // Use stored disbursedTotal for exact amount (avoids timezone calculation differences)
+    if ((t as any).disbursedTotal) {
+      return acc + (t as any).disbursedTotal;
+    }
+    // Fallback to calculation for older transactions without disbursedTotal
     const project = projects.find(p => p.id === t.projectId);
     const baseDate = t.effectiveInterestDate || project?.interestStartDate;
     let interest = 0;
@@ -78,20 +83,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
     const baseDate = t.effectiveInterestDate || project?.interestStartDate;
     const interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
     const supplementary = t.supplementaryAmount || 0;
-
-    // DEBUG: Log each pending transaction calculation
-    console.log('=== DASHBOARD PENDING CALC ===');
-    console.log('Transaction ID:', t.id);
-    console.log('t.effectiveInterestDate:', t.effectiveInterestDate);
-    console.log('project?.interestStartDate:', project?.interestStartDate);
-    console.log('baseDate (used):', baseDate);
-    console.log('t.compensation.totalApproved:', t.compensation.totalApproved);
-    console.log('interest (calculated):', interest);
-    console.log('supplementary:', supplementary);
-    console.log('Transaction total:', t.compensation.totalApproved + interest + supplementary);
-    console.log('==============================');
-
-    return acc + t.compensation.totalApproved + interest + supplementary;
+    const transactionTotal = t.compensation.totalApproved + interest + supplementary;
+    return acc + transactionTotal;
   }, 0);
 
   // Tổng lãi phát sinh - Link với tab Giao dịch / tab Số dư
@@ -105,36 +98,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
     const baseDate = t.effectiveInterestDate || project?.interestStartDate;
 
     if (t.status === TransactionStatus.DISBURSED && t.disbursementDate) {
-      // Lãi đã chốt (không tính vào lãi phát sinh)
-      lockedInterest += calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
+      // Lãi đã chốt - prefer disbursedTotal for accuracy
+      if ((t as any).disbursedTotal) {
+        // Extract interest from stored total: total - principal - supplementary
+        const supplementary = t.supplementaryAmount || 0;
+        lockedInterest += (t as any).disbursedTotal - t.compensation.totalApproved - supplementary;
+      } else {
+        lockedInterest += calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
+      }
     } else if (t.status !== TransactionStatus.DISBURSED) {
       // Lãi tạm tính (chỉ từ các giao dịch chưa giải ngân)
-      tempInterest += calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
+      const tInterest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
+      tempInterest += tInterest;
     }
   });
 
   const statsTotalInterest = tempInterest; // Chỉ trả về lãi tạm tính
   const statsLockedInterest = lockedInterest; // Lãi đã chốt (để hiển thị)
 
-  // Tổng giá trị dự án = Gốc + Lãi + Tiền bổ sung (đã GN + chưa GN)
-  const statsTotalProjectValue = filteredProjects.reduce((acc, p) => {
-    const projectTrans = filteredTransactions.filter(t => t.projectId === p.id);
-    const totalForProject = projectTrans.reduce((sum, t) => {
-      const baseDate = t.effectiveInterestDate || p.interestStartDate;
-      let interest = 0;
-      if (t.status === TransactionStatus.DISBURSED && t.disbursementDate) {
-        interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
-      } else if (t.status !== TransactionStatus.DISBURSED) {
-        interest = calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());
-      }
-      const supplementary = t.supplementaryAmount || 0;
-      return sum + t.compensation.totalApproved + interest + supplementary;
-    }, 0);
-    return acc + (totalForProject > 0 ? totalForProject : p.totalBudget);
-  }, 0);
+  // Tổng giá trị dự án = statsDisbursedAmount + statsPendingAmount
+  // Using the same calculation as above for consistency
+  const statsTotalProjectValue = statsDisbursedAmount + statsPendingAmount;
 
-  // Dashboard total balance = Real balance + Pending Interest + Locked Interest
-  // This ensures the pool total matches the "Total Value" requirement.
+  // Dashboard total balance = Bank balance + pending interest + locked interest
+  // This should naturally equal statsTotalProjectValue if bank transactions are correct
   const statsTotalAccountBalance = bankAccount.currentBalance + tempInterest + lockedInterest;
 
   const projectStats = useMemo(() => {
@@ -144,6 +131,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
       const pDisbursed = projectTrans
         .filter(t => t.status === TransactionStatus.DISBURSED)
         .reduce((acc, t) => {
+          // Use disbursedTotal when available
+          if ((t as any).disbursedTotal) {
+            return acc + (t as any).disbursedTotal;
+          }
           const baseDate = t.effectiveInterestDate || project.interestStartDate;
           let interest = 0;
           if (t.disbursementDate) {
@@ -165,6 +156,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, projects, in
       const pInterest = projectTrans.reduce((acc, t) => {
         const baseDate = t.effectiveInterestDate || project.interestStartDate;
         if (t.status === TransactionStatus.DISBURSED && t.disbursementDate) {
+          // Use disbursedTotal to extract exact interest
+          if ((t as any).disbursedTotal) {
+            const supplementary = t.supplementaryAmount || 0;
+            return acc + ((t as any).disbursedTotal - t.compensation.totalApproved - supplementary);
+          }
           return acc + calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date(t.disbursementDate));
         } else if (t.status !== TransactionStatus.DISBURSED) {
           return acc + calculateInterest(t.compensation.totalApproved, interestRate, baseDate, new Date());

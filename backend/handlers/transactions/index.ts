@@ -101,6 +101,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 }
             }
 
+            // Ensure effectiveInterestDate is properly serialized if present
+            if (mapped.effectiveInterestDate && mapped.effectiveInterestDate instanceof Date) {
+                // Keep as Date object - JSON.stringify will convert to ISO string
+                // No conversion needed, Mongoose toObject already handles this
+            }
+
             return mapped;
         });
 

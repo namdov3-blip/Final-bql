@@ -14,9 +14,14 @@ function calculateInterest(
     endDate: Date
 ): number {
     if (!startDate) return 0;
+    // Simplified logic matching agribank-crm (no VN timezone handling)
     const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
     const end = new Date(endDate);
-    const days = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    end.setHours(0, 0, 0, 0);
+
+    const timeDiff = end.getTime() - start.getTime();
+    const days = Math.floor(timeDiff / (1000 * 3600 * 24));
     if (days <= 0) return 0;
     const dailyRate = annualRate / 100 / 365;
     return Math.round(principal * dailyRate * days);

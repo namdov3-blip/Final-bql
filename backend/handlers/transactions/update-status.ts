@@ -16,22 +16,14 @@ function calculateInterest(
 ): number {
     if (!startDate) return 0;
 
-    // Use Vietnam Time (UTC+7) for consistent day counting
-    const getVNZeroHour = (dateInput: Date | string) => {
-        const d = new Date(dateInput);
-        // Offset by 7 hours for Vietnam, then reset UTC hours to 0
-        // A simple way to get the "Date" part in Vietnam TZ
-        const vnTime = new Date(d.getTime() + (7 * 60 * 60 * 1000));
-        const vnDate = vnTime.getUTCDate();
-        const vnMonth = vnTime.getUTCMonth();
-        const vnYear = vnTime.getUTCFullYear();
-        return new Date(Date.UTC(vnYear, vnMonth, vnDate, 0, 0, 0, 0));
-    };
+    // Simplified logic matching agribank-crm (no VN timezone handling)
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0);
 
-    const start = getVNZeroHour(startDate);
-    const end = getVNZeroHour(endDate);
-
-    const days = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const timeDiff = end.getTime() - start.getTime();
+    const days = Math.floor(timeDiff / (1000 * 3600 * 24));
     if (days <= 0) return 0;
     const dailyRate = annualRate / 100 / 365;
     return Math.round(principal * dailyRate * days);
@@ -89,6 +81,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             );
             const supplementary = transaction.supplementaryAmount || 0;
             const totalFinal = transaction.compensation.totalApproved + interest + supplementary;
+
+            // DEBUG: Log all calculated values for disbursement
+            console.log('=== BACKEND DISBURSEMENT DEBUG ===');
+            console.log('transaction._id:', transaction._id);
+            console.log('baseDate:', baseDate);
+            console.log('now:', now);
+            console.log('transaction.compensation.totalApproved:', transaction.compensation.totalApproved);
+            console.log('interestRate:', interestRate);
+            console.log('interest (calculated):', interest);
+            console.log('supplementary:', supplementary);
+            console.log('totalFinal (withdrawn from bank):', totalFinal);
+            console.log('==================================');
 
             // Get current bank balance for this organization
             const org = project?.organization;
