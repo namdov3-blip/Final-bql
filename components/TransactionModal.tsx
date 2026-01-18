@@ -102,27 +102,19 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
   const handleConfirmPayment = () => {
     if (!isDisbursed) {
-      // Tự động chuyển sang trạng thái đã giải ngân
-      onStatusChange(transaction.id, TransactionStatus.DISBURSED);
-      setLocalStatus(TransactionStatus.DISBURSED);
+      const confirmMsg = `Xác nhận CHI TRẢ cho hộ dân "${transaction.household.name}"?\n\n` +
+        `- Số tiền: ${formatCurrency(calculatedTotal)}\n` +
+        `  (Gốc: ${formatCurrency(transaction.compensation.totalApproved)} + Lãi: ${formatCurrency(interest)} + Bổ sung: ${formatCurrency(supplementary)})\n\n` +
+        `Thao tác này sẽ trừ tiền từ quỹ và không thể hoàn tác trực tiếp.`;
+
+      if (window.confirm(confirmMsg)) {
+        onStatusChange(transaction.id, TransactionStatus.DISBURSED);
+        setLocalStatus(TransactionStatus.DISBURSED);
+      }
     }
   };
 
   const handleRefundMoney = () => {
-    // DEBUG: Log all values for troubleshooting
-    console.log('=== REFUND DEBUG ===');
-    console.log('transaction.id:', transaction.id);
-    console.log('transaction.compensation.totalApproved:', transaction.compensation.totalApproved);
-    console.log('transaction.disbursedTotal:', (transaction as any).disbursedTotal);
-    console.log('storedDisbursedTotal:', storedDisbursedTotal);
-    console.log('interest (calculated):', interest);
-    console.log('supplementary:', supplementary);
-    console.log('calculatedTotal:', calculatedTotal);
-    console.log('totalAmount (final, sent to backend):', totalAmount);
-    console.log('isDisbursed:', isDisbursed);
-    console.log('baseDate:', baseDate);
-    console.log('calcEndDate:', calcEndDate);
-    console.log('===================');
 
     const confirmMsg = `Xác nhận nạp lại ${formatCurrency(totalAmount)} vào quỹ?\n\n- Gốc mới: ${formatCurrency(totalAmount)}\n- Lãi: Reset về 0\n- Trạng thái: Tồn đọng/Giữ hộ\n- Bắt đầu tính lãi: Từ ngày mai`;
     if (window.confirm(confirmMsg)) {
