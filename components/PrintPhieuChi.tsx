@@ -28,11 +28,44 @@ export const PrintPhieuChi: React.FC<PrintPhieuChiProps> = ({
 
     // If disbursed, interest is fixed based on disbursementDate. 
     // If not, अस्थायी (temporary) calculation until today.
-    const interestEndDate = transaction.disbursementDate ? new Date(transaction.disbursementDate) : new Date();
-    const interest = calculateInterest(transaction.compensation.totalApproved, interestRate, baseDate, interestEndDate);
+    // Match TransactionModal logic: recalculate interest for consistency
+    const isDisbursed = transaction.status === 'Đã giải ngân';
+    let interest = 0;
+    let calcEndDate = new Date();
+    
+    if (isDisbursed && transaction.disbursementDate) {
+        // CASE 1: Đã giải ngân -> Lãi tính đến ngày thực tế chi trả (đóng băng)
+        calcEndDate = new Date(transaction.disbursementDate);
+        interest = calculateInterest(transaction.compensation.totalApproved, interestRate, baseDate, calcEndDate);
+    } else if (!isDisbursed) {
+        // CASE 2: Chưa giải ngân (bao gồm PENDING & HOLD) -> Lãi tính đến hiện tại (tiếp tục chạy)
+        calcEndDate = new Date();
+        interest = calculateInterest(transaction.compensation.totalApproved, interestRate, baseDate, calcEndDate);
+    }
 
     const supplementary = transaction.supplementaryAmount || 0;
-    const totalAmount = transaction.compensation.totalApproved + interest + supplementary;
+    const calculatedTotal = transaction.compensation.totalApproved + interest + supplementary;
+    
+    // Match TransactionModal display logic: use storedDisbursedTotal if available for display
+    // This ensures printed receipt shows the same amount as displayed in TransactionModal
+    let storedDisbursedTotal = 0;
+    if (isDisbursed) {
+        if ((transaction as any).disbursedTotal) {
+            storedDisbursedTotal = (transaction as any).disbursedTotal;
+        } else if (transaction.history) {
+            const disbursementEntry = [...transaction.history].reverse().find(
+                (h: any) => h.action?.includes('Xác nhận') || h.action?.includes('chi trả')
+            );
+            if (disbursementEntry?.totalAmount) {
+                storedDisbursedTotal = disbursementEntry.totalAmount;
+            }
+        }
+    }
+    
+    // For display in print receipt: use storedDisbursedTotal if available (matches TransactionModal displayTotal)
+    // This ensures consistency between what user sees in modal and what appears on printed receipt
+    const displayTotal = (isDisbursed && storedDisbursedTotal > 0) ? storedDisbursedTotal : calculatedTotal;
+    const totalAmount = displayTotal;
 
     // Formatted strings for details
     const approvedFormatted = formatCurrency(transaction.compensation.totalApproved);

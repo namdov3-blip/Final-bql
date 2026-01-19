@@ -122,10 +122,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   };
 
   const handleRefundMoney = () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:121',message:'Refund calculation debug',data:{isDisbursed,storedDisbursedTotal,calculatedTotal,totalAmount,totalApproved:transaction.compensation.totalApproved,interest,supplementary},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-check'})}).catch(()=>{});
-    // #endregion
-
     const confirmMsg = `Xác nhận nạp lại ${formatCurrency(totalAmount)} vào quỹ?\n\n` +
       `- Gốc: ${formatCurrency(transaction.compensation.totalApproved)}\n` +
       `- Lãi: ${formatCurrency(interest)}\n` +
@@ -136,9 +132,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       `- Trạng thái: Tồn đọng/Giữ hộ\n` +
       `- Bắt đầu tính lãi: Từ ngày mai`;
     if (window.confirm(confirmMsg)) {
-      // #region agent log
-      fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:125',message:'Calling onRefund with totalAmount',data:{transactionId:transaction.id,refundedAmount:totalAmount},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-check'})}).catch(()=>{});
-      // #endregion
       onRefund(transaction.id, totalAmount);
       setLocalStatus(TransactionStatus.HOLD);
       setShowHistory(true);
