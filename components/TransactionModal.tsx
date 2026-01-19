@@ -99,7 +99,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
   // For disbursed transactions, prefer stored amount to avoid timezone calculation differences
   const calculatedTotal = transaction.compensation.totalApproved + interest + supplementary;
-  const totalAmount = (isDisbursed && storedDisbursedTotal > 0) ? storedDisbursedTotal : calculatedTotal;
+  // For display: use storedDisbursedTotal if available (shows actual amount paid)
+  // For refund: always use calculatedTotal (gốc + lãi + bổ sung) to ensure full refund
+  const displayTotal = (isDisbursed && storedDisbursedTotal > 0) ? storedDisbursedTotal : calculatedTotal;
+  const totalAmount = calculatedTotal; // Always refund the full calculated amount (gốc + lãi + bổ sung)
 
   // Display start date for interest logic (use baseDate directly without offset)
   const displayStartDate = baseDate ? new Date(baseDate) : null;
@@ -119,9 +122,23 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   };
 
   const handleRefundMoney = () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:121',message:'Refund calculation debug',data:{isDisbursed,storedDisbursedTotal,calculatedTotal,totalAmount,totalApproved:transaction.compensation.totalApproved,interest,supplementary},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-check'})}).catch(()=>{});
+    // #endregion
 
-    const confirmMsg = `Xác nhận nạp lại ${formatCurrency(totalAmount)} vào quỹ?\n\n- Gốc mới: ${formatCurrency(totalAmount)}\n- Lãi: Reset về 0\n- Trạng thái: Tồn đọng/Giữ hộ\n- Bắt đầu tính lãi: Từ ngày mai`;
+    const confirmMsg = `Xác nhận nạp lại ${formatCurrency(totalAmount)} vào quỹ?\n\n` +
+      `- Gốc: ${formatCurrency(transaction.compensation.totalApproved)}\n` +
+      `- Lãi: ${formatCurrency(interest)}\n` +
+      `${supplementary !== 0 ? `- Bổ sung: ${formatCurrency(supplementary)}\n` : ''}` +
+      `- Tổng hoàn lại: ${formatCurrency(totalAmount)}\n\n` +
+      `Sau khi hoàn lại:\n` +
+      `- Lãi: Reset về 0\n` +
+      `- Trạng thái: Tồn đọng/Giữ hộ\n` +
+      `- Bắt đầu tính lãi: Từ ngày mai`;
     if (window.confirm(confirmMsg)) {
+      // #region agent log
+      fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:125',message:'Calling onRefund with totalAmount',data:{transactionId:transaction.id,refundedAmount:totalAmount},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-check'})}).catch(()=>{});
+      // #endregion
       onRefund(transaction.id, totalAmount);
       setLocalStatus(TransactionStatus.HOLD);
       setShowHistory(true);
@@ -357,7 +374,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   <Wallet size={48} strokeWidth={1.5} />
                 </div>
                 <p className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-2">Tổng số tiền thực nhận</p>
-                <p className="text-3xl font-bold text-slate-900 tracking-tight">{formatCurrency(totalAmount)}</p>
+                <p className="text-3xl font-bold text-slate-900 tracking-tight">{formatCurrency(displayTotal)}</p>
                 <p className="text-[11px] text-slate-500 mt-2 font-medium italic">
                   = Tổng phê duyệt + Lãi phát sinh {supplementary !== 0 ? `${supplementary > 0 ? '+ Tiền bổ sung' : '+ Giảm bổ sung'}` : ''} {interest === 0 && supplementary === 0 && '(Chưa tính)'}
                 </p>
