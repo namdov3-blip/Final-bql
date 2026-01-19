@@ -218,17 +218,40 @@ const App: React.FC = () => {
   // Handle refund via API
   const handleRefundTransaction = async (id: string, refundedAmount: number) => {
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:219',message:'Refund start (frontend handler)',data:{transactionId:id,refundedAmount,prevBankBalance:bankAccount?.currentBalance,prevTxCount:transactions?.length,prevBankTxCount:bankTransactions?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-ui',hypothesisId:'UI1'})}).catch(()=>{});
+      // #endregion
+
       await api.transactions.refund(id, currentUser?.name || 'Unknown', refundedAmount);
+
+      // #region agent log
+      fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:224',message:'Refund API call done (frontend handler)',data:{transactionId:id,refundedAmount},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-ui',hypothesisId:'UI1'})}).catch(()=>{});
+      // #endregion
+
       // Reload transactions and bank data
       const [txRes, balanceRes, bankTxRes] = await Promise.all([
         api.transactions.list(),
         api.bank.getBalance(),
         api.bank.listTransactions()
       ]);
+
+      const updatedTx = (txRes as any)?.data?.find?.((t: any) => t?.id === id || t?._id === id);
+      const newBalance = (balanceRes as any)?.data?.currentBalance;
+      const bankTxCount = (bankTxRes as any)?.data?.length;
+      const latestBankTx = (bankTxRes as any)?.data?.[0];
+
+      // #region agent log
+      fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:236',message:'Refund reload results (frontend handler)',data:{transactionId:id,updatedTxStatus:updatedTx?.status,updatedTxDisbursedTotal:(updatedTx as any)?.disbursedTotal,updatedTxDisbursementDate:updatedTx?.disbursementDate,newBalance,txCount:(txRes as any)?.data?.length,bankTxCount,latestBankTxAmount:latestBankTx?.amount,latestBankTxType:latestBankTx?.type},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-ui',hypothesisId:'UI2'})}).catch(()=>{});
+      // #endregion
+
       setTransactions(txRes.data);
       setBankAccount(balanceRes.data);
       setBankTransactions(bankTxRes.data);
       setSelectedTransaction(null);
+
+      // #region agent log
+      fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:244',message:'Refund state updated (frontend handler)',data:{transactionId:id,newBalance},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-ui',hypothesisId:'UI2'})}).catch(()=>{});
+      // #endregion
     } catch (err: any) {
       console.error('Refund failed:', err);
     }

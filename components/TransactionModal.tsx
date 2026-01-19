@@ -70,39 +70,107 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
   const supplementary = transaction.supplementaryAmount || 0;
 
-  // For disbursed transactions, use the stored disbursedTotal field (most reliable)
-  // or fall back to history entry
-  if (isDisbursed) {
-    if ((transaction as any).disbursedTotal) {
-      storedDisbursedTotal = (transaction as any).disbursedTotal;
-    } else if (transaction.history) {
+  // For disbursed transactions OR transactions that were refunded (have disbursedTotal),
+  // use the stored disbursedTotal field (most reliable) or fall back to history entry
+  // Note: disbursedTotal is NOT cleared on refund, so we can use it even after refund
+  if ((transaction as any).disbursedTotal) {
+    storedDisbursedTotal = (transaction as any).disbursedTotal;
+  } else {
+    // Fallback: try to get from history if disbursedTotal field is missing
+    // Check for both disbursed transactions and refunded transactions (have disbursementDate in history)
+    if (transaction.history) {
       const disbursementEntry = [...transaction.history].reverse().find(
         (h: any) => h.action?.includes('Xác nhận') || h.action?.includes('chi trả')
       );
       if (disbursementEntry?.totalAmount) {
         storedDisbursedTotal = disbursementEntry.totalAmount;
       }
+      // #region agent log
+      fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:85',message:'History lookup for disbursedTotal',data:{historyLength:transaction.history.length,historyEntries:transaction.history.map((h:any)=>({action:h.action,totalAmount:h.totalAmount})),foundEntry:disbursementEntry?{action:disbursementEntry.action,totalAmount:disbursementEntry.totalAmount}:null,storedDisbursedTotal},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-debug'})}).catch(()=>{});
+      // #endregion
+    }
+    // If still not found, try to calculate from disbursementDate or isDisbursed status
+    // This handles edge cases where disbursedTotal and history entry are missing
+    // Note: baseDate is defined above (line 64), so we can use it here
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:95',message:'Checking if should calculate from disbursementDate or isDisbursed',data:{storedDisbursedTotal,isDisbursed,hasDisbursementDate:!!transaction.disbursementDate,disbursementDate:transaction.disbursementDate,hasBaseDate:!!baseDate,baseDate:baseDate instanceof Date ? baseDate.toISOString() : baseDate,totalApproved:transaction.compensation?.totalApproved},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-debug'})}).catch(()=>{});
+    // #endregion
+    if (storedDisbursedTotal === 0 && baseDate && transaction.compensation?.totalApproved) {
+      let calcEndDateForRefund: Date;
+      if (transaction.disbursementDate) {
+        // If has disbursementDate, use it
+        calcEndDateForRefund = new Date(transaction.disbursementDate);
+      } else if (isDisbursed) {
+        // If isDisbursed but no disbursementDate, calculate up to now (shouldn't happen, but handle it)
+        calcEndDateForRefund = new Date();
+      } else {
+        // Not disbursed, skip calculation
+        calcEndDateForRefund = null as any;
+      }
+      
+      if (calcEndDateForRefund) {
+        const calculatedInterest = calculateInterest(transaction.compensation.totalApproved, interestRate, baseDate, calcEndDateForRefund);
+        storedDisbursedTotal = transaction.compensation.totalApproved + calculatedInterest + (transaction.supplementaryAmount || 0);
+        // #region agent log
+        fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:107',message:'Calculated storedDisbursedTotal from disbursementDate or isDisbursed',data:{isDisbursed,hasDisbursementDate:!!transaction.disbursementDate,disbursementDate:transaction.disbursementDate,baseDate:baseDate instanceof Date ? baseDate.toISOString() : baseDate,calcEndDate:calcEndDateForRefund.toISOString(),calculatedInterest,totalApproved:transaction.compensation.totalApproved,supplementary:transaction.supplementaryAmount || 0,storedDisbursedTotal},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-debug'})}).catch(()=>{});
+        // #endregion
+      }
     }
   }
+  // #region agent log
+  fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:88',message:'storedDisbursedTotal lookup',data:{isDisbursed,hasDisbursementDate:!!transaction.disbursementDate,disbursedTotalFromObject:(transaction as any).disbursedTotal,storedDisbursedTotal,hasHistory:!!transaction.history,historyLength:transaction.history?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-debug'})}).catch(()=>{});
+  // #endregion
 
   // Calculate interest based on transaction status
   // Match TransactionList logic: always recalculate for consistency
-  if (isDisbursed && transaction.disbursementDate) {
+  const hasDisbursementDate = transaction.disbursementDate && transaction.disbursementDate !== '';
+  
+  if (isDisbursed && hasDisbursementDate) {
     // CASE 1: Đã giải ngân -> Lãi tính đến ngày thực tế chi trả (đóng băng)
     calcEndDate = new Date(transaction.disbursementDate);
     interest = calculateInterest(transaction.compensation.totalApproved, interestRate, baseDate, calcEndDate);
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:93',message:'Calculated interest CASE1',data:{isDisbursed,hasDisbursementDate,disbursementDate:transaction.disbursementDate,baseDate:baseDate instanceof Date ? baseDate.toISOString() : baseDate,calcEndDate:calcEndDate.toISOString(),interest,principal:transaction.compensation.totalApproved,rate:interestRate},timestamp:Date.now(),sessionId:'debug-session',runId:'interest-calculation'})}).catch(()=>{});
+    // #endregion
+  } else if (isDisbursed && !hasDisbursementDate) {
+    // CASE 1b: Đã giải ngân nhưng chưa có disbursementDate (edge case) -> Tính đến hiện tại
+    calcEndDate = new Date();
+    interest = calculateInterest(transaction.compensation.totalApproved, interestRate, baseDate, calcEndDate);
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:99',message:'Calculated interest CASE1b',data:{isDisbursed,hasDisbursementDate,disbursementDate:transaction.disbursementDate,baseDate:baseDate instanceof Date ? baseDate.toISOString() : baseDate,calcEndDate:calcEndDate.toISOString(),interest,principal:transaction.compensation.totalApproved,rate:interestRate},timestamp:Date.now(),sessionId:'debug-session',runId:'interest-calculation'})}).catch(()=>{});
+    // #endregion
   } else if (!isDisbursed) {
     // CASE 2: Chưa giải ngân (bao gồm PENDING & HOLD) -> Lãi tính đến hiện tại (tiếp tục chạy)
     calcEndDate = new Date();
     interest = calculateInterest(transaction.compensation.totalApproved, interestRate, baseDate, calcEndDate);
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:103',message:'Calculated interest CASE2',data:{isDisbursed,hasDisbursementDate,baseDate:baseDate instanceof Date ? baseDate.toISOString() : baseDate,calcEndDate:calcEndDate.toISOString(),interest,principal:transaction.compensation.totalApproved,rate:interestRate},timestamp:Date.now(),sessionId:'debug-session',runId:'interest-calculation'})}).catch(()=>{});
+    // #endregion
+  } else {
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:107',message:'NO INTEREST CALCULATED - no branch matched',data:{isDisbursed,hasDisbursementDate,disbursementDate:transaction.disbursementDate,baseDate:baseDate instanceof Date ? baseDate.toISOString() : baseDate,interest:0},timestamp:Date.now(),sessionId:'debug-session',runId:'interest-calculation'})}).catch(()=>{});
+    // #endregion
   }
 
   // For disbursed transactions, prefer stored amount to avoid timezone calculation differences
   const calculatedTotal = transaction.compensation.totalApproved + interest + supplementary;
-  // For display: use storedDisbursedTotal if available (shows actual amount paid)
-  // For refund: always use calculatedTotal (gốc + lãi + bổ sung) to ensure full refund
-  const displayTotal = (isDisbursed && storedDisbursedTotal > 0) ? storedDisbursedTotal : calculatedTotal;
-  const totalAmount = calculatedTotal; // Always refund the full calculated amount (gốc + lãi + bổ sung)
+  // For display: use storedDisbursedTotal if available (shows actual amount paid/disbursed)
+  // This works for both disbursed transactions AND refunded transactions (which have storedDisbursedTotal but isDisbursed=false)
+  const displayTotal = storedDisbursedTotal > 0 ? storedDisbursedTotal : calculatedTotal;
+  // #region agent log
+  fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:159',message:'Display total calculation',data:{isDisbursed,storedDisbursedTotal,calculatedTotal,displayTotal,interest,supplementary,totalApproved:transaction.compensation.totalApproved},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-debug'})}).catch(()=>{});
+  // #endregion
+  // For refund: 
+  // - If transaction was disbursed (has storedDisbursedTotal), use that to ensure we refund the exact amount that was disbursed
+  // - If transaction was refunded before (isDisbursed=false but has disbursementDate), try to get disbursedTotal from transaction.disbursedTotal or history
+  // - Otherwise, use calculatedTotal (for transactions that haven't been disbursed yet)
+  // For refund: use storedDisbursedTotal if available (works for both disbursed and refunded transactions)
+  // This ensures we refund the exact amount that was originally disbursed
+  const totalAmount = storedDisbursedTotal > 0 ? storedDisbursedTotal : calculatedTotal;
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:105',message:'Refund calculation before refund',data:{isDisbursed,disbursementDate:transaction.disbursementDate,baseDate:baseDate instanceof Date ? baseDate.toISOString() : baseDate,totalApproved:transaction.compensation.totalApproved,interest,supplementary,calculatedTotal,totalAmount,storedDisbursedTotal,interestRate},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-debug'})}).catch(()=>{});
+  // #endregion
 
   // Display start date for interest logic (use baseDate directly without offset)
   const displayStartDate = baseDate ? new Date(baseDate) : null;
@@ -122,6 +190,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   };
 
   const handleRefundMoney = () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:124',message:'handleRefundMoney called',data:{totalAmount,calculatedTotal,interest,supplementary,totalApproved:transaction.compensation.totalApproved},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-debug'})}).catch(()=>{});
+    // #endregion
+    
     const confirmMsg = `Xác nhận nạp lại ${formatCurrency(totalAmount)} vào quỹ?\n\n` +
       `- Gốc: ${formatCurrency(transaction.compensation.totalApproved)}\n` +
       `- Lãi: ${formatCurrency(interest)}\n` +
@@ -131,7 +203,15 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       `- Lãi: Reset về 0\n` +
       `- Trạng thái: Tồn đọng/Giữ hộ\n` +
       `- Bắt đầu tính lãi: Từ ngày mai`;
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:146',message:'Confirm dialog message',data:{confirmMsg,formattedTotal:formatCurrency(totalAmount),formattedGoc:formatCurrency(transaction.compensation.totalApproved),formattedLai:formatCurrency(interest)},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-debug'})}).catch(()=>{});
+    // #endregion
+    
     if (window.confirm(confirmMsg)) {
+      // #region agent log
+      fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TransactionModal.tsx:135',message:'Calling onRefund',data:{transactionId:transaction.id,refundedAmount:totalAmount},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-debug'})}).catch(()=>{});
+      // #endregion
       onRefund(transaction.id, totalAmount);
       setLocalStatus(TransactionStatus.HOLD);
       setShowHistory(true);

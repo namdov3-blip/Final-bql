@@ -32,12 +32,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const { refundedAmount } = req.body;
+        // #region agent log
+        fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'refund.ts:34',message:'Received refundedAmount from frontend',data:{refundedAmount,transactionId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-debug'})}).catch(()=>{});
+        // #endregion
         if (!refundedAmount || refundedAmount <= 0) {
             return res.status(400).json({ error: 'Số tiền hoàn trả phải lớn hơn 0' });
         }
 
         // Get transaction to find project
         const transaction = await (Transaction as any).findById(id);
+        // #region agent log
+        fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'refund.ts:43',message:'Transaction loaded for refund',data:{transactionId:id,status:transaction?.status,disbursedTotal:(transaction as any)?.disbursedTotal,totalApproved:transaction?.compensation?.totalApproved,supplementaryAmount:transaction?.supplementaryAmount,refundedAmount},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-debug'})}).catch(()=>{});
+        // #endregion
         if (!transaction) {
             return res.status(404).json({ error: 'Không tìm thấy giao dịch' });
         }
@@ -57,16 +63,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const currentBalance = lastBankTx?.runningBalance || openingBalance;
 
         // Create deposit (refund)
-        await (BankTransaction as any).create({
+        const newBalance = currentBalance + refundedAmount;
+        const bankTx = await (BankTransaction as any).create({
             type: 'Nạp tiền',
             amount: refundedAmount,
             date: now,
             note: `Hoàn quỹ hồ sơ: ${transaction._id} - Hộ: ${transaction.household.name}`,
             createdBy: payload.name,
-            runningBalance: currentBalance + refundedAmount,
+            runningBalance: newBalance,
             organization: org,
             projectId: project?._id
         });
+        // #region agent log
+        fetch('http://127.0.0.1:7245/ingest/99173cb6-623f-4d60-9e61-53b6a11271d2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'refund.ts:76',message:'Bank transaction created for refund',data:{refundedAmount,bankTxAmount:bankTx.amount,currentBalance,newBalance,transactionId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'refund-debug'})}).catch(()=>{});
+        // #endregion
 
         // Update transaction
         transaction.status = 'Tồn đọng/Giữ hộ';
